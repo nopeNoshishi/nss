@@ -17,30 +17,30 @@ Learning git and rust for good developer.
 # Usage
 ### Install
 ```
-cargo install nss
-nss help
+cargo install nssi
 ```
 
 ### how to
 ```
-nss <Commands> [Options]
+nssi help
+nssi <Commands> [Options]
 ```
 
 ### Basic Usage
 First, create repository!
 ```
-nss voyage
+nssi voyage
 ```
 
 Edit file ....
 Next snapshot the file!
 ```
-nss snapshot `file_path`
+nssi snapshot `file_path`
 ```
 
 Last you must refister version data into database!
 ```
-nss reg -m 'initial'
+nssi reg -m 'initial'
 ```
 
 **GREAT!!**

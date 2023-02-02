@@ -5,7 +5,7 @@ pub fn nss_command() -> clap::Command {
     let help = "This is Original Version Management System.
 Learn git and rust for good developer.
 
-Usage: nss [COMMAND]
+Usage: nssi [COMMAND]
 
 Main Commands:
     voyage        Create your current dirctory into nss repository
