@@ -10,7 +10,6 @@ repository = "https://github.com/nopeNoshosho/nss"
 license = "MIT"
 keywords = ["git-like", "version management"]
 categories = ["command-line-utilities"]
-build = "build.rs"
 exclude = ["/picture", ".*"]
 include = ["/src"]
 publish = true
