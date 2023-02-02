@@ -20,7 +20,7 @@ Deep Commnads:
     ocat          Search the specified hash value in the repositor,
                     and if the hash value is available, display the result.
     lk-snap       Look the snapshot and display file mtadata
-    update-index  Register file contents in the working diretory to the index
+    up-snap       Register file contents in the working diretory to the index
     write-tree    Create main tree object by index
     update-ref    Move HEAD pointer to the commit
 
@@ -121,7 +121,7 @@ fn look_command() -> clap::Command {
 }
 
 fn index_command() -> clap::Command {
-    Command::new("update-index")
+    Command::new("up-sanp")
         .about("Register file contents in the working diretory to the index")
             .arg(Arg::new("working")
                 .short('v')

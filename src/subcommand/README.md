@@ -19,11 +19,11 @@
 
 ## ocat
 
-## uodate-index
+## up-snap
 
 ## write-tree
 
-## parser
+## lk-snap
 
-## update-marker
+## update-ref
 
