@@ -8,7 +8,6 @@ readme = "README.md"
 description = "Git-like Command Line Interface"
 repository = "https://github.com/nopeNoshosho/nss"
 license = "MIT"
-keywords = ["git-like", "version management"]
 categories = ["command-line-utilities"]
 exclude = ["/picture", ".*"]
 include = ["/src"]
