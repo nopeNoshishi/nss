@@ -21,9 +21,6 @@ pub fn run(target: &str) -> Result<()> {
     // target needs to be commit hash
     let tree = to_base_tree()?;
 
-    // clean working directory
-    delete_file()?;
-
     // restoration by tree
     let repo_path = gadget::get_repo_path()?;
     match create_file(tree, repo_path) {
@@ -54,6 +51,9 @@ pub fn run(target: &str) -> Result<()> {
             bail!("{}\nCan't go to {}", e, target)
         }
     }
+
+    // clean working directory
+    delete_file()?;
 
     update_head(target)?;
 
@@ -91,8 +91,9 @@ fn delete_file() -> Result<()> {
 fn create_file(tree: Tree, prefix: PathBuf) -> Result<()>  {
 
     for entry in tree.entries {
+        let entry_hash = hex::decode(entry.hash.to_vec())?;
 
-        let raw_content = file_system::read_object(&String::from_utf8(entry.hash)?)?;
+        let raw_content = file_system::read_object(String::from_utf8(entry_hash)?)?;
         match Object::from_content(raw_content)? {
             Object::Blob(b) => {
                 let path = prefix.join(entry.name);
