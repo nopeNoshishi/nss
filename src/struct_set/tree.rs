@@ -1,14 +1,12 @@
 // Std
 use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
-use std::collections::HashSet;
+use std::path::Path;
 
 // External
 use anyhow::Result;
 
 // Internal
-use super::{Object, Hashable, Index, FileMeta};
-use crate::util::gadget;
+use super::{Object, Hashable, Index, IndexDirectory, FileMeta};
 
 /// **Entry Struct**
 /// 
@@ -61,9 +59,9 @@ impl Entry {
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
-        let store = format!("{} {}\0{}", self.mode, self.name, hex::encode(&self.hash));
+        let header  = format!("{} {}\0", self.mode, self.name);
 
-        Vec::from(store.as_bytes())
+       [header.as_bytes(), &self.hash].concat()
     }
 }
 
@@ -118,12 +116,17 @@ impl std::fmt::Display for Entry {
             }
         };
 
+        let mode = match object_type {
+            "tree" => 0o04000,
+            _ => self.mode
+        };
+
         write!(
             f,
             "{:0>6o} {} {}\t{}",
-            self.mode,
+            mode,
             object_type,
-            String::from_utf8(self.hash.to_vec()).unwrap(),
+            hex::encode(self.hash.to_vec()),
             self.name
         )
     }
@@ -165,7 +168,7 @@ impl Tree {
         let mut header = contnets.next().unwrap();
 
         let mut entries = contnets.try_fold(entries, |mut acc, x| {
-            let (hash, next_header) = x.split_at(40);
+            let (hash, next_header) = x.split_at(20);
             let entry = Entry::from_rawobject(header, hash).unwrap();
     
             acc.push(entry);
@@ -183,24 +186,14 @@ impl TryFrom<Index> for Tree {
     type Error = anyhow::Error;
 
     fn try_from(index: Index) -> Result<Self> {
-        let mut index_paths: Vec<PathBuf> = vec![];
-
-        for filemeta in index.filemetas {
-            let path = PathBuf::from(filemeta.filename);
-            if path.to_str().unwrap().contains("/") {
-                let mut iter = path.iter();
-                index_paths.push(PathBuf::from(iter.next().unwrap()));
-            } else {
-                index_paths.push(path);
-            }
-        }
-        let entry_paths: HashSet<PathBuf> = index_paths.into_iter().collect();
+        let index_dir = IndexDirectory::new(index)?;
 
         let mut entries: Vec<Entry> = vec![];
-        for entry_path in entry_paths {
-            let repo_path = gadget::get_repo_path()?;
-            entries.push(Entry::new(&repo_path.join(entry_path)).unwrap());
+        for file in index_dir.file_paths {
+            entries.push(Entry::new(file)?)
         }
+        println!("{:?}", entries);
+
         entries.sort_by(|a, b| a.name.cmp(&b.name));
 
         Ok(Self {
@@ -226,12 +219,14 @@ impl std::fmt::Display for Tree {
 impl Hashable for Tree {
     fn as_bytes(&self) -> Vec<u8> {
         // "tree content_size\0entry\nentry\nentry\n..." to bytes
-        let header = format!("tree {}\0", self.entries.len());
         let entries = self.entries
             .iter()
             .map(|x| x.as_bytes())
             .collect::<Vec<_>>();
+        
+        let content = entries.concat();
+        let header = format!("tree {}\0", content.len());
 
-        [Vec::from(header.as_bytes()), entries.concat()].concat()
+        [Vec::from(header.as_bytes()), content].concat()
     }
 }

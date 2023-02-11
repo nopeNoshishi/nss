@@ -1,9 +1,9 @@
 // Std
 use std::path::Path;
-use sha1::{Digest, Sha1};
 
 // External
 use anyhow::Result;
+use sha1::{Digest, Sha1};
 
 // Internal
 use super::{Blob, Tree, Commit};

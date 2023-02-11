@@ -201,6 +201,11 @@ fn ref_command() -> clap::Command {
 fn history_command() -> clap::Command {
     Command::new("story")
         .about("View commit history from a cuurent commit")
+        .arg(Arg::new("short")
+            .short('s')
+            .long("short")
+            .action(ArgAction::SetTrue)
+            .help("Short history"))
 }
 
 fn goto_command() -> clap::Command {

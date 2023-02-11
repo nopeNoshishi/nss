@@ -22,6 +22,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
 
+use super::file_system;
+
 
 pub fn create_dir<P: AsRef<Path>> (dir_path: P) -> io::Result<()>{
 
@@ -60,7 +62,7 @@ fn ext_paths<P: AsRef<Path>> (target: P, paths: &mut Vec<PathBuf>) {
     paths.sort();
 }
 
-fn ext_paths_ignore<P: AsRef<Path>> (target: P, paths: &mut Vec<PathBuf>) {
+pub fn ext_paths_ignore<P: AsRef<Path>> (target: P, paths: &mut Vec<PathBuf>) {
     // Print all files in target directory
     let files = target.as_ref().read_dir().unwrap();
 
@@ -104,10 +106,22 @@ fn ext_paths_ignore<P: AsRef<Path>> (target: P, paths: &mut Vec<PathBuf>) {
 
 /// Return your repository **absolutely** path
 pub fn get_repo_path() -> Result<PathBuf> {
-    //TODO: レポジトリのどこにいても作業できるように上の階層まで探索して一番近いレポジトリを探さなければならない。
-    let repo_path = PathBuf::from(fs::read_to_string(".nss/repo")?);
+
+    let repo_path = file_system::exists_repo(None)?;
 
     Ok(repo_path)
+}
+
+/// new object path
+pub fn get_new_objects_path<T: Into<String>>(hash: T) -> Result<PathBuf> {
+
+    let hash = hash.into();
+
+    let (dir, file) = hash.split_at(2);
+    let repo_path = get_repo_path()?;
+    let object_dir = &repo_path.join(".nss/objects").join(dir);
+
+    Ok(object_dir.join(file))
 }
 
 /// Return your object database **absolutely** path

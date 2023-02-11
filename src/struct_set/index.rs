@@ -117,3 +117,43 @@ fn padding(size: usize) -> usize {
 
     padding
 }
+
+pub struct IndexDirectory {
+    pub file_paths: Vec<PathBuf>,
+    pub dir_paths: Vec<PathBuf>,
+}
+
+impl IndexDirectory {
+    pub fn new(index: Index) -> Result<Self> {
+        let mut file_paths: Vec<PathBuf> = vec![];
+        let mut dir_paths: Vec<PathBuf> = vec![];
+        for filemeta in index.clone().filemetas {
+            let repo_path = gadget::get_repo_path()?;
+            let file_path = repo_path.join(filemeta.filename);
+            let mut dir_name = file_path.parent().unwrap().to_path_buf();
+
+            file_paths.push(repo_path.join(file_path));
+            dir_paths.push(repo_path.clone());
+
+            while dir_name != repo_path {
+                dir_paths.push(repo_path.join(dir_name.clone()));
+
+                dir_name = dir_name.parent().unwrap().to_path_buf();
+            }
+        };
+        dir_paths.sort();
+        dir_paths.dedup();
+        dir_paths.reverse();
+
+        file_paths.sort();
+        file_paths.reverse();
+
+        println!("{:?}", dir_paths);
+        println!("{:?}", file_paths);
+
+        Ok(Self { 
+            file_paths,
+            dir_paths 
+        })
+    }
+}

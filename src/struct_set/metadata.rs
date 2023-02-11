@@ -8,7 +8,7 @@ use byteorder::{ByteOrder, BigEndian};
 
 // Internal
 use crate::util::gadget;
-use super::{Object, Hashable};
+use super::{Blob, Hashable};
 
 /// TODO: Documentation
 #[derive(Debug, Clone)]
@@ -44,7 +44,7 @@ impl FileMeta {
         let gid= metadata.gid() as u32;
         let filesize = metadata.size() as u32;
 
-        let object = Object::new(path).unwrap();
+        let object = Blob::new(path).unwrap();
         let hash = object.to_hash();
 
         let repo_path = gadget::get_repo_path()?;

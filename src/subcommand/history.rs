@@ -22,6 +22,17 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
+pub fn run_option_s() -> Result<()> {
+    let head_hash = match read_head()? {
+        Some(h) => h,
+        _ => bail!("No history yet. You start new journey!")
+    };
+
+    go_back_option_s(&head_hash)?;
+
+    Ok(())
+}
+
 fn go_back(hash: &str) -> Result<()> {
     let raw_content = file_system::read_object(hash)?;
     let object: Object = Object::from_content(raw_content)?;
@@ -38,6 +49,25 @@ fn go_back(hash: &str) -> Result<()> {
     
     if commit.parent != "None".to_string() {
         go_back(&commit.parent)?
+    }
+
+    Ok(())
+}
+
+fn go_back_option_s(hash: &str) -> Result<()> {
+    let raw_content = file_system::read_object(hash)?;
+    let object: Object = Object::from_content(raw_content)?;
+
+    let commit = match object {
+        Object::Commit(c) => c,
+        _ => todo!()
+    };
+
+    println!("{} {}",
+        format!("{}", &hash[0..7]).yellow(),
+        format!("{}", commit.message));
+    if commit.parent != "None".to_string() {
+        go_back_option_s(&commit.parent)?
     }
 
     Ok(())

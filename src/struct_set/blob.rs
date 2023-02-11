@@ -1,7 +1,7 @@
 // Std
 use std::io::prelude::*;
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 // External
 use anyhow::Result;
@@ -14,6 +14,7 @@ use super::Hashable;
 /// This struct represents a file object.
 #[derive(Debug, Clone)]
 pub struct Blob {
+    pub name: Option<PathBuf>,
     // file content as bytes
     pub content: Vec<u8>
 }
@@ -28,6 +29,7 @@ impl Blob {
         file.read_to_end(&mut content)?;
         
         Ok(Self {
+            name: Some(path.as_ref().to_path_buf()),
             content: content
         })        
     }
@@ -35,6 +37,7 @@ impl Blob {
     /// Create Object with RawObject.
     pub fn from_rawobject(contnet: &[u8]) -> Result<Self> {
         Ok(Self {
+            name: None,
             content: contnet.to_vec(),
         })
     }

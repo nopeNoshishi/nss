@@ -7,6 +7,7 @@
 use std::io::prelude::*;
 use std::fs;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::path::PathBuf;
 
 // External
@@ -18,10 +19,8 @@ use crate::util::{gadget, file_system};
 
 pub fn run(target: &str) -> Result<()> {
     // target needs to be commit hash
-    let tree = to_base_tree(target)?;
+    let tree = to_base_tree()?;
 
-    // TODO: 全てのオブジェクトが復元可能な時のみ作業を進める。
-    // 先にindexを作成するなど。
     // clean working directory
     delete_file()?;
 
@@ -56,11 +55,14 @@ pub fn run(target: &str) -> Result<()> {
         }
     }
 
+    update_head(target)?;
+
     Ok(())
 }
 
-fn to_base_tree(commit_hash: &str) -> Result<Tree, anyhow::Error> {
-    let raw_content = file_system::read_object(commit_hash)?;
+fn to_base_tree() -> Result<Tree, anyhow::Error> {
+    let commit_hash = read_head()?.unwrap();
+    let raw_content = file_system::read_object(&commit_hash)?;
     let commit = match Object::from_content(raw_content)? {
         Object::Commit(c) => c,
         _ => bail!("{} is not commit hash", commit_hash)
@@ -94,6 +96,7 @@ fn create_file(tree: Tree, prefix: PathBuf) -> Result<()>  {
         match Object::from_content(raw_content)? {
             Object::Blob(b) => {
                 let path = prefix.join(entry.name);
+                gadget::create_dir(&path)?;
                 let mut file = File::create(&path)?;
                 file.write_all(&b.content)?;
                 file.flush()?;
@@ -101,7 +104,7 @@ fn create_file(tree: Tree, prefix: PathBuf) -> Result<()>  {
             Object::Tree(t) => {
                 create_file(t, prefix.join(entry.name))?
             }
-        _ => bail!("This tree has commit hash. Please check update-index command!")
+        _ => bail!("This tree has commit hash. Please check up-snap command!")
         };
     }
 
@@ -129,4 +132,17 @@ fn read_head() -> Result<Option<String>> {
     }
 
     Ok(Some(prefix_path[1].to_owned()))
+}
+
+pub fn update_head(target: &str) -> Result<()> {
+
+    let head_path = gadget::get_head_path()?;
+    let mut file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(head_path)?;
+
+    file.write_all(format!("bookmarker: {}", target).as_bytes())?;
+
+    Ok(())
 }

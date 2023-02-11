@@ -11,11 +11,11 @@ use anyhow::Result;
 
 // Internal
 use crate::util::file_system;
-use crate::struct_set::{Object, Hashable};
+use crate::struct_set::{Blob, Hashable};
 
 /// Calculate the hash value of the given file and output this.
 pub fn run<P: AsRef<Path>> (path: P) -> Result<()> {
-    let object = Object::new(path.as_ref())?;
+    let object = Blob::new(path.as_ref())?;
     let hash = hex::encode(object.to_hash());
     println!("{}", &hash);
 
@@ -24,10 +24,10 @@ pub fn run<P: AsRef<Path>> (path: P) -> Result<()> {
 
 /// Register the object into object database (repository) and output this.
 pub fn run_option_w<P: AsRef<Path>> (path: P) -> Result<()> {    
-    let object = Object::new(path.as_ref())?;
+    let blob = Blob::new(path.as_ref())?;
 
-    let hash = hex::encode(object.to_hash());
-    file_system::write_object(&hash, object)?;
+    let hash = hex::encode(blob.to_hash());
+    file_system::write_blob(&hash, blob)?;
 
     println!("{}", hash);
 

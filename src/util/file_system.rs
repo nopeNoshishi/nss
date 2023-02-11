@@ -15,7 +15,7 @@ use flate2::read::ZlibDecoder;
 
 // Internal
 use super::gadget;
-use crate::struct_set::{Object, Hashable};
+use crate::struct_set::{Blob, Tree, Hashable};
 
 pub fn exists_repo (repo_dir: Option<PathBuf>) -> Result<PathBuf> {
 
@@ -35,25 +35,52 @@ pub fn exists_repo (repo_dir: Option<PathBuf>) -> Result<PathBuf> {
 
     for entry in read_dir {
         match entry?.path() == repo_path {
-            true => return Ok(current_dir),
+            true => {
+                return Ok(current_dir)
+            },
             false => continue
         }
     }
 
-    exists_repo(Some(current_dir.parent().unwrap().to_path_buf()))
+    return exists_repo(Some(current_dir.parent().unwrap().to_path_buf()))
 }
 
-pub fn write_object<S: AsRef<str>> (hash: S, object: Object) -> Result<()> {
-    let object_path = gadget::get_objects_path(hash.as_ref())?;
+pub fn write_blob<S: AsRef<str>> (hash: S, object: Blob) -> Result<()> {
+    let object_path = gadget::get_new_objects_path(hash.as_ref())?;
     gadget::create_dir(object_path.parent().unwrap())?;
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     encoder.write_all(&mut &object.as_bytes())?;
     let compressed = encoder.finish()?;
 
-    let mut file = File::create(object_path).expect("Error!");
+    let mut file = File::create(object_path)?;
     file.write_all(&compressed)?;
     file.flush().unwrap();
+
+    Ok(())
+}
+
+pub fn write_tree<S: AsRef<str>> (hash: S, tree: Tree, tree_dir_path: PathBuf) -> Result<()> {
+    let object_path = gadget::get_new_objects_path(hash.as_ref())?;
+    gadget::create_dir(object_path.parent().unwrap())?;
+
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(&mut &tree.as_bytes())?;
+    let compressed = encoder.finish()?;
+
+    let mut file = File::create(object_path)?;
+    file.write_all(&compressed)?;
+    file.flush().unwrap();
+
+    let entries = tree.clone().entries;
+
+    for entry in entries {
+        if entry.mode != 0o100644 {
+            write_tree(hex::encode(entry.hash), tree.clone(), tree_dir_path.join(entry.name))?
+        } else {
+            continue
+        }
+    }
 
     Ok(())
 }

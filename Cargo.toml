@@ -1,6 +1,6 @@
 [package]
 name = "nssi"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 rust-version = "1.65"
 authors = ["noshishi"]
@@ -9,7 +9,7 @@ description = "Git-like Command Line Interface"
 repository = "https://github.com/nopeNoshishi/nss"
 license = "MIT"
 categories = ["command-line-utilities"]
-exclude = ["/picture", ".*"]
+exclude = ["/picture", ".*", "/how_to_make"]
 include = ["/src"]
 publish = true
 

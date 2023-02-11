@@ -117,9 +117,13 @@ fn main() -> Result<()> {
             update_ref::run(new_commit.unwrap())?
         }
 
-        Some(("story", _)) => {
+        Some(("story", sub_m)) => {
             file_system::exists_repo(None)?;
-            history::run()?
+            if sub_m.get_flag("short") {
+                history::run_option_s()?
+            } else {
+                history::run()?
+            }
         }
 
         Some(("go-to", sub_m)) => {
@@ -129,8 +133,13 @@ fn main() -> Result<()> {
         }
 
         Some(("debug", _sub_m)) => {
+            use std::os::unix::fs::MetadataExt;
+            use crate::util::gadget;
 
-            file_system::exists_repo(None)?;
+            let repopath = gadget::get_repo_path()?;
+            let path = repopath.join("test");
+            let meta = path.metadata()?;
+            println!("{:b}", meta.mode());
         }
 
         _ => bail!("No such a commnad. Please `nss -h` to watch help."),
