@@ -131,7 +131,6 @@ fn push_paths(paths: &mut Vec<PathBuf>, tree: Tree, base_path: PathBuf) -> Resul
         if path.is_file() {
             paths.push(path);
         } else {
-            println!("{:?}", path.is_file());
             let hash = hex::encode(entry.hash);
             let sub_tree = to_tree(&hash)?;
 

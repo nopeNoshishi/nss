@@ -17,20 +17,17 @@ use crate::util::gadget;
 
 pub fn run(file_path: &str) -> Result<()> {
 
-    let mut new_flag = false;
     let mut index = match Index::from_rawindex() {
         Ok(index) => index,
         Err(e) => { 
             println!("{}", e);
-            new_flag = true;
             Index::empty()
         }
     };
 
-    if !new_flag {
-        let file_path = PathBuf::from(file_path);
-        index.add(&file_path)?;
-    }
+
+    let file_path = PathBuf::from(file_path);
+    index.add(&file_path)?;
 
     let index_path = gadget::get_index_path()?;
     let mut file = File::create(&index_path)?;
