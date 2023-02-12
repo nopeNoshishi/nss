@@ -5,7 +5,7 @@
 
 <p align="center">
 <img src="https://img.shields.io/github/actions/workflow/status/nopeNoshishi/nss/rust.yml?style=flat-square">
-<img src="https://img.shields.io/badge/version-0.1.3-green?style=flat-square">
+<img src="https://img.shields.io/badge/version-0.1.5-green?style=flat-square">
 </p>
 
 # nss (noshishi)

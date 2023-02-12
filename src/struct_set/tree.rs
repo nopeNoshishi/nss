@@ -4,16 +4,17 @@ use std::path::Path;
 
 // External
 use anyhow::Result;
+use serde::{Serialize, Deserialize};
 
 // Internal
-use super::{Object, Hashable, Index, IndexDirectory, FileMeta};
+use super::{Object, Hashable, FileMeta};
 
 /// **Entry Struct**
 /// 
 /// This struct contains blob( or tree) object's mode, name, hash.
 /// Since blob and tree do not know their own names, it is necessary 
 /// to string them together in this structure.
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Entry {
     pub mode: u32,
     pub name: String, // file or dir by pre_tree
@@ -35,7 +36,21 @@ impl Entry {
             .to_str().unwrap()
             .to_string();
 
-        Ok(Self { mode, name, hash, })
+        Ok(Self { mode, name, hash,})
+    }
+
+    pub fn new_group<P: AsRef<Path>>(path: P, entries: Vec<Entry>) -> Result<Self> {
+        let metadata = path.as_ref().metadata()?;
+        let mode = metadata.mode();
+
+        let tree = Tree::from_entries(entries);
+        let hash = tree.to_hash();
+
+        let name = path.as_ref().file_name().unwrap()
+        .to_str().unwrap()
+        .to_string();
+
+        Ok(Self { mode, name, hash,})
     }
 
     /// Create Entry with RawObject.
@@ -117,7 +132,7 @@ impl std::fmt::Display for Entry {
         };
 
         let mode = match object_type {
-            "tree" => 0o04000,
+            "tree" => 0o40000,
             _ => self.mode
         };
 
@@ -158,7 +173,12 @@ impl Tree {
 
         entries.sort_by(|a, b| a.name.cmp(&b.name));
 
-        Ok(Self { entries: entries })
+        Ok(Self { entries })
+    }
+
+    pub fn from_entries(entries: Vec<Entry>) -> Self {
+
+        Self { entries }
     }
 
     /// Create Object with RawObject.
@@ -179,26 +199,6 @@ impl Tree {
         entries.sort_by(|a, b| a.name.cmp(&b.name));
     
         Ok(Self { entries })
-    }
-}
-
-impl TryFrom<Index> for Tree {
-    type Error = anyhow::Error;
-
-    fn try_from(index: Index) -> Result<Self> {
-        let index_dir = IndexDirectory::new(index)?;
-
-        let mut entries: Vec<Entry> = vec![];
-        for file in index_dir.file_paths {
-            entries.push(Entry::new(file)?)
-        }
-        println!("{:?}", entries);
-
-        entries.sort_by(|a, b| a.name.cmp(&b.name));
-
-        Ok(Self {
-            entries: entries
-        })
     }
 }
 

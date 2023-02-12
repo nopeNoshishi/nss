@@ -23,7 +23,7 @@ pub fn run(file_path: &str) -> Result<()> {
         Err(e) => { 
             println!("{}", e);
             new_flag = true;
-            Index::from_path(file_path)?
+            Index::empty()
         }
     };
 
@@ -42,7 +42,7 @@ pub fn run(file_path: &str) -> Result<()> {
 
 pub fn run_all() -> Result<()> {
 
-    let index = Index::new()?;
+    let index = Index::new_all()?;
 
     let index_path = gadget::get_index_path()?;
     let mut file = File::create(&index_path)?;

@@ -20,6 +20,7 @@ use std::io;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use anyhow::Context;
 use anyhow::{Result, bail};
 
 use super::file_system;
@@ -33,16 +34,14 @@ pub fn create_dir<P: AsRef<Path>> (dir_path: P) -> io::Result<()>{
 }
 
 #[allow(dead_code)]
-pub fn get_all_paths(target: &PathBuf) -> Vec<PathBuf> {
+pub fn get_all_paths(target: &PathBuf) -> Result<Vec<PathBuf>> {
 
     let mut paths = vec![];
-    ext_paths(target, paths.as_mut());
+    ext_paths(target, paths.as_mut())?;
 
-    paths
+    Ok(paths)
 }
 
-// FIXME: どの段階で全てのPATHを習得するかで作業内容が変化する
-// index用なのか、go-to用なのか
 pub fn get_all_paths_ignore<P: AsRef<Path>> (target: P) -> Vec<PathBuf> {
     let mut paths = vec![];
     ext_paths_ignore(target, paths.as_mut());
@@ -51,15 +50,19 @@ pub fn get_all_paths_ignore<P: AsRef<Path>> (target: P) -> Vec<PathBuf> {
 }
 
 #[allow(dead_code)]
-fn ext_paths<P: AsRef<Path>> (target: P, paths: &mut Vec<PathBuf>) {
+fn ext_paths<P: AsRef<Path>> (target: P, paths: &mut Vec<PathBuf>) -> Result<()> {
     // Print all files in target directory
-    let files = target.as_ref().read_dir().unwrap();
+    let files = target.as_ref()
+        .read_dir()
+        .with_context(|| format!("{:?} object database has no objects", target.as_ref()))?;
 
     for dir_entry in files {
         let path = dir_entry.unwrap().path();
         paths.push(path);
     }
     paths.sort();
+
+    Ok(())
 }
 
 pub fn ext_paths_ignore<P: AsRef<Path>> (target: P, paths: &mut Vec<PathBuf>) {
@@ -137,7 +140,7 @@ pub fn get_objects_path<T: Into<String>>(hash: T) -> Result<PathBuf> {
     let object_dir = &repo_path.join(".nss/objects").join(dir);
 
     let mut paths: Vec<PathBuf> = vec![];
-    ext_paths(object_dir, &mut paths);
+    ext_paths(object_dir, &mut paths)?;
 
     let mut target_files: Vec<PathBuf> = vec![];
     for path in paths {
@@ -187,15 +190,6 @@ pub fn get_index_path() -> Result<PathBuf> {
 
     Ok(repo_path.join(".nss/INDEX"))
 }
-
-/// Return index(staging area) file **absolutely** path
-pub fn get_memo_path() -> Result<PathBuf> {
-    
-    let repo_path = get_repo_path()?;
-
-    Ok(repo_path.join(".nss/memo"))
-}
-
 
 #[cfg(test)]
 mod tests {

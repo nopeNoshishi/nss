@@ -8,8 +8,8 @@ use anyhow::{Result, bail};
 use byteorder::{ByteOrder, BigEndian};
 
 // Internal
-use super::FileMeta;
-use crate::util::gadget;
+use super::{Tree, Object, FileMeta};
+use crate::util::{gadget, file_system};
 
 /// TODO: Documentation
 #[derive(Debug, Clone)]
@@ -18,7 +18,11 @@ pub struct Index {
 }
 
 impl Index {
-    pub fn new() -> Result<Self> {
+    pub fn empty() -> Self {
+        Self { filemetas: vec![] }
+    }
+
+    pub fn new_all() -> Result<Self> {
         let repo_path = gadget::get_repo_path()?;
         let mut all_paths = gadget::get_all_paths_ignore(&repo_path);
         all_paths.sort();
@@ -27,20 +31,7 @@ impl Index {
             .map(|path| FileMeta::new(path).unwrap())
             .collect::<Vec<_>>();
 
-        Ok(Self {
-            filemetas
-        })
-    }
-
-    pub fn from_path(file_path: &str) -> Result<Self> {
-        let repo_path = gadget::get_repo_path()?;
-        let path = repo_path.join(file_path);
-
-        let filemeta = FileMeta::new(&path)?;
-
-        Ok(Self {
-            filemetas: vec![filemeta]
-        })
+        Ok(Self { filemetas })
     }
 
     pub fn from_rawindex() -> Result<Self> {
@@ -65,9 +56,7 @@ impl Index {
             start_size = start_size + 62 + name_size + padding_size;   
         }
 
-        Ok(Self {
-            filemetas: filemetas
-        })
+        Ok(Self { filemetas })
     }
 
     pub fn add(&mut self, file_path: &PathBuf) -> Result<()> {
@@ -118,42 +107,46 @@ fn padding(size: usize) -> usize {
     padding
 }
 
-pub struct IndexDirectory {
-    pub file_paths: Vec<PathBuf>,
-    pub dir_paths: Vec<PathBuf>,
+impl TryFrom<Tree> for Index {
+    type Error = anyhow::Error;
+
+    fn try_from(tree: Tree) -> Result<Self, anyhow::Error> {
+        let mut index = Index::empty();
+        let mut paths: Vec<PathBuf> = vec![];
+
+        let repo_path = gadget::get_repo_path()?;
+        push_paths(&mut paths, tree, repo_path)?;
+
+        for file_path in paths {
+            index.add(&file_path)?
+        }
+
+        Ok(index)
+    }
 }
 
-impl IndexDirectory {
-    pub fn new(index: Index) -> Result<Self> {
-        let mut file_paths: Vec<PathBuf> = vec![];
-        let mut dir_paths: Vec<PathBuf> = vec![];
-        for filemeta in index.clone().filemetas {
-            let repo_path = gadget::get_repo_path()?;
-            let file_path = repo_path.join(filemeta.filename);
-            let mut dir_name = file_path.parent().unwrap().to_path_buf();
+fn push_paths(paths: &mut Vec<PathBuf>, tree: Tree, base_path: PathBuf) -> Result<()> {
+    for entry in tree.entries {
+        let path = base_path.join(entry.name);
+        if path.is_file() {
+            paths.push(path);
+        } else {
+            println!("{:?}", path.is_file());
+            let hash = hex::encode(entry.hash);
+            let sub_tree = to_tree(&hash)?;
 
-            file_paths.push(repo_path.join(file_path));
-            dir_paths.push(repo_path.clone());
+            push_paths(paths, sub_tree, path)?
+        }
+    }
 
-            while dir_name != repo_path {
-                dir_paths.push(repo_path.join(dir_name.clone()));
+    Ok(())
+}
 
-                dir_name = dir_name.parent().unwrap().to_path_buf();
-            }
-        };
-        dir_paths.sort();
-        dir_paths.dedup();
-        dir_paths.reverse();
+fn to_tree(hash: &str) -> Result<Tree, anyhow::Error> {
+    let raw_content = file_system::read_object(&hash)?;
 
-        file_paths.sort();
-        file_paths.reverse();
-
-        println!("{:?}", dir_paths);
-        println!("{:?}", file_paths);
-
-        Ok(Self { 
-            file_paths,
-            dir_paths 
-        })
+    match Object::from_content(raw_content)? {
+        Object::Tree(t) => Ok(t),
+        _ => bail!("{} is not tree hash", hash)
     }
 }

@@ -10,6 +10,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 
+use anyhow::Context;
 // External
 use anyhow::{Result, bail};
 
@@ -19,14 +20,17 @@ use crate::util::{gadget, file_system};
 
 pub fn run(target: &str) -> Result<()> {
     // target needs to be commit hash
-    let tree = to_base_tree()?;
+    let tree = to_base_tree(target)?;
+
+    // clean working directory
+    delete_file()?;
 
     // restoration by tree
     let repo_path = gadget::get_repo_path()?;
-    match create_file(tree, repo_path) {
+    match create_file(tree.clone(), repo_path) {
         Ok(_) => {
             // update index
-            let index = Index::new()?;
+            let index = Index::try_from(tree)?;
             let index_path = gadget::get_index_path()?;
             let mut file = File::create(&index_path)?;
             file.write_all(&index.as_bytes())?;
@@ -52,20 +56,16 @@ pub fn run(target: &str) -> Result<()> {
         }
     }
 
-    // clean working directory
-    delete_file()?;
-
     update_head(target)?;
 
     Ok(())
 }
 
-fn to_base_tree() -> Result<Tree, anyhow::Error> {
-    let commit_hash = read_head()?.unwrap();
-    let raw_content = file_system::read_object(&commit_hash)?;
+fn to_base_tree(target: &str) -> Result<Tree, anyhow::Error> {
+    let raw_content = file_system::read_object(target)?;
     let commit = match Object::from_content(raw_content)? {
         Object::Commit(c) => c,
-        _ => bail!("{} is not commit hash", commit_hash)
+        _ => bail!("{} is not commit hash", target)
     };
 
     // target commit hash needs to have tree hash
@@ -73,16 +73,16 @@ fn to_base_tree() -> Result<Tree, anyhow::Error> {
 
     match Object::from_content(raw_content)? {
         Object::Tree(t) => Ok(t),
-        _ => bail!("{} is not tree hash", commit_hash)
+        _ => bail!("{} is not tree hash", &commit.tree_hash)
     }
+    
 }
 
 fn delete_file() -> Result<()> {
-    let repo_path = gadget::get_repo_path()?;
-    let delete_paths = gadget::get_all_paths_ignore(&repo_path);
+    let index = Index::from_rawindex()?;
 
-    for path in delete_paths {
-        fs::remove_file(path)?
+    for path in index.filemetas {
+        fs::remove_file(path.filename)?
     }
 
     Ok(())
@@ -91,21 +91,21 @@ fn delete_file() -> Result<()> {
 fn create_file(tree: Tree, prefix: PathBuf) -> Result<()>  {
 
     for entry in tree.entries {
-        let entry_hash = hex::decode(entry.hash.to_vec())?;
+        let entry_hash = hex::encode(entry.hash);
 
-        let raw_content = file_system::read_object(String::from_utf8(entry_hash)?)?;
+        let raw_content = file_system::read_object(entry_hash)?;
         match Object::from_content(raw_content)? {
             Object::Blob(b) => {
                 let path = prefix.join(entry.name);
-                gadget::create_dir(&path)?;
-                let mut file = File::create(&path)?;
+                gadget::create_dir(&path.parent().unwrap()).context("No create")?;
+                let mut file = File::create(&path).context("No create")?;
                 file.write_all(&b.content)?;
                 file.flush()?;
             },
             Object::Tree(t) => {
                 create_file(t, prefix.join(entry.name))?
             }
-        _ => bail!("This tree has commit hash. Please check up-snap command!")
+        _ => bail!("This tree has commit hash. Please check lk-snap command!")
         };
     }
 

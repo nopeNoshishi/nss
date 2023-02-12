@@ -15,9 +15,8 @@ use crate::struct_set::{Blob, Hashable};
 
 /// Calculate the hash value of the given file and output this.
 pub fn run<P: AsRef<Path>> (path: P) -> Result<()> {
-    let object = Blob::new(path.as_ref())?;
-    let hash = hex::encode(object.to_hash());
-    println!("{}", &hash);
+    let blob = Blob::new(path.as_ref())?;
+    println!("{}", hex::encode(blob.to_hash()));
 
     Ok(())
 }

@@ -1,38 +1,31 @@
 //! **Reg command** ... Base command: `git commit` and `git commit-tree`
 
 // Std
-use std::fs;
 use std::fs::{File, OpenOptions};
+use std::path::PathBuf;
 use std::io::prelude::*;
+use std::collections::HashMap;
 
 // External
 use anyhow::{Result, bail};
 use colored::*;
-use flate2::Compression;
-use flate2::write::ZlibEncoder;
 
 // Internal
-use crate::struct_set::{Index, Tree, Commit, Hashable};
+use crate::struct_set::{Index, Entry, Tree, Commit, Hashable};
 use crate::util::{gadget, file_system};
 
 pub fn run(massage: &str) -> Result<()> {
-    write_tree()?;
-    let hash = fs::read_to_string(".nss/memo/for_reg")?;
 
-    let object_path = gadget::get_objects_path(&hash)?;
+    // Create tree object from index
+    let hash = write_tree()?;
 
-    if !object_path.exists() {
-        bail!("Can't find tree object. Please write-tree first");
-    }
-
-    
+    // Read head hash
     let head_hash = match head_hash()? {
         Some(h) => h,
         _ => "None".to_owned()
     };
 
-    // TODO! Get two parent. Parse author and commiter.
-    // TODO: 最初のコメットだけ親がいないパターンを網羅する。
+    // Build commit object
     let commit = Commit::new(  
         hash,
         head_hash,
@@ -41,21 +34,16 @@ pub fn run(massage: &str) -> Result<()> {
         massage.to_string()
     )?;
 
+    // Write commit object
     let hash = hex::encode(commit.to_hash());
-    let object_path = gadget::get_new_objects_path(&hash)?;
-    gadget::create_dir(&object_path.parent().unwrap().to_path_buf()).unwrap();
+    file_system::write_commit(&hash, commit.clone())?;
+    
+    display_result(commit.parent.as_str(), hash.as_str())?;
 
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(&mut &commit.as_bytes()).unwrap();
-    let compressed = encoder.finish().unwrap();
+    Ok(())
+}
 
-    let mut file = File::create(object_path).unwrap();
-    file.write_all(&compressed).unwrap();
-    file.flush().unwrap();
-
-    let old_hash = commit.parent.as_str();
-    let new_hash = hash.as_str();
-
+fn display_result(old_hash: &str, new_hash: &str) -> Result<()> {
     match old_hash {
         "None" => {
             println!("{}: {} --> {}: {}",
@@ -83,7 +71,6 @@ pub fn run(massage: &str) -> Result<()> {
 
     Ok(())
 }
-
 
 fn read_head() -> Result<String> {
     let head_path = gadget::get_head_path()?;
@@ -145,20 +132,97 @@ fn update_bookmark(bookmarker: &str, new_commit: &str, old_commit: Option<&str>)
     Ok(())
 }
 
-fn write_tree() -> Result<()>{
+fn write_tree() -> Result<String>{
     let index = Index::from_rawindex()?;
-    let tree = Tree::try_from(index)?;
+    let tree_dir = tree_map(index)?;
 
-    let hash = hex::encode(tree.to_hash());
-    let tree_dir_path = gadget::get_repo_path()?;
-    file_system::write_tree(&hash, tree, tree_dir_path)?;
+    let mut repo_tree_hash = String::new();
+    let mut dir_entry_map: HashMap<PathBuf, Entry> = HashMap::new();
+    for m in tree_dir {
 
-    // memo tree hash value
-    let memo_path = gadget::get_memo_path()?;
-    gadget::create_dir(&memo_path)?;
-    let mut file = File::create(memo_path.join("for_reg"))?;
-    file.write_all(hash.as_bytes())?;
-    file.flush()?;
+        let mut entries: Vec<Entry> = vec![];
 
-    Ok(())
+
+        for path in m.1 {
+            if path.is_file() {
+                let entry = Entry::new(path)?;
+                entries.push(entry)
+            } else {
+                let entry = dir_entry_map.get(&path).unwrap().to_owned();
+                entries.push(entry)
+            }
+        }
+
+        let dir_entry = Entry::new_group(&m.0, entries.clone())?;
+        dir_entry_map.insert(m.0.to_path_buf(), dir_entry);
+
+        let tree = Tree::from_entries(entries);
+        let hash = hex::encode(tree.to_hash());
+        file_system::write_tree(&hash, tree)?;
+
+        if m.0 == gadget::get_repo_path()? {
+            repo_tree_hash = hash
+        }
+    }    
+
+    Ok(repo_tree_hash)
+}
+
+
+fn tree_map(index: Index) -> Result<Vec<(PathBuf,Vec<PathBuf>)>> {
+    let mut file_paths: Vec<PathBuf> = vec![];
+    let mut dir_paths: Vec<PathBuf> = vec![];
+    for filemeta in index.clone().filemetas {
+        let repo_path = gadget::get_repo_path()?;
+        let file_path = repo_path.join(filemeta.filename);
+        let mut dir_name = file_path.parent().unwrap().to_path_buf();
+
+        file_paths.push(repo_path.join(file_path));
+        dir_paths.push(repo_path.clone());
+
+        while dir_name != repo_path {
+            dir_paths.push(repo_path.join(dir_name.clone()));
+
+            dir_name = dir_name.parent().unwrap().to_path_buf();
+        }
+    };
+    dir_paths.sort();
+    dir_paths.dedup();
+
+
+    let mut temp_map: HashMap<PathBuf, Vec<PathBuf>> = HashMap::new();
+    for dir in &dir_paths {
+        temp_map.insert(dir.to_path_buf(), vec![]);
+
+        for file in &file_paths {
+            if dir == &file.parent().unwrap().to_path_buf() {
+                temp_map.get_mut(&dir.to_path_buf()).unwrap().push(file.to_path_buf())
+            } 
+        }
+
+        for sub_dir in &dir_paths {
+            if dir == &sub_dir.parent().unwrap().to_path_buf() {
+
+                temp_map.get_mut(&dir.to_path_buf()).unwrap().push(sub_dir.to_path_buf())
+            }
+        }
+    }
+
+    let mut tmp: Vec<(&PathBuf, &Vec<PathBuf>)> = temp_map.iter().collect();
+    tmp.sort_by(|b, a| {
+        let comp_a: Vec<&std::ffi::OsStr> = a.0.iter().collect();
+        let comp_b: Vec<&std::ffi::OsStr> = b.0.iter().collect();
+        if comp_a.len() >= comp_b.len() {
+            std::cmp::Ordering::Greater
+        } else {
+            std::cmp::Ordering::Less
+        }
+    });
+
+    let mut tree_dir: Vec<(PathBuf, Vec<PathBuf>)> = vec![];
+    for t in tmp {
+        tree_dir.push((t.0.to_owned(), t.1.to_vec()))
+    }
+
+    Ok(tree_dir)
 }
