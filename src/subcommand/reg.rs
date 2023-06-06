@@ -1,43 +1,42 @@
 //! **Reg command** ... Base command: `git commit` and `git commit-tree`
 
 // Std
-use std::fs::{File, OpenOptions};
-use std::path::PathBuf;
-use std::io::prelude::*;
 use std::collections::HashMap;
+use std::fs::{File, OpenOptions};
+use std::io::prelude::*;
+use std::path::PathBuf;
 
 // External
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use colored::*;
 
 // Internal
-use crate::struct_set::{Index, Entry, Tree, Commit, Hashable};
-use crate::util::{gadget, file_system};
+use crate::struct_set::{Commit, Entry, Hashable, Index, Tree};
+use crate::util::{file_system, gadget};
 
 pub fn run(massage: &str) -> Result<()> {
-
     // Create tree object from index
     let hash = write_tree()?;
 
     // Read head hash
     let head_hash = match head_hash()? {
         Some(h) => h,
-        _ => "None".to_owned()
+        _ => "None".to_owned(),
     };
 
     // Build commit object
-    let commit = Commit::new(  
+    let commit = Commit::new(
         hash,
         head_hash,
         "nopeNoshishi".to_string(),
         "nopeNoshishi@nope.noshishi".to_string(),
-        massage.to_string()
+        massage.to_string(),
     )?;
 
     // Write commit object
     let hash = hex::encode(commit.to_hash());
     file_system::write_commit(&hash, commit.clone())?;
-    
+
     display_result(commit.parent.as_str(), hash.as_str())?;
 
     Ok(())
@@ -46,22 +45,26 @@ pub fn run(massage: &str) -> Result<()> {
 fn display_result(old_hash: &str, new_hash: &str) -> Result<()> {
     match old_hash {
         "None" => {
-            println!("{}: {} --> {}: {}",
-            format!("OLD").bright_blue(),
-            &old_hash,
-            format!("NEW").bright_yellow(),
-            &new_hash[0..7]);
+            println!(
+                "{}: {} --> {}: {}",
+                "OLD".bright_blue(),
+                &old_hash,
+                "NEW".bright_yellow(),
+                &new_hash[0..7]
+            );
 
             let book_path = read_head()?;
             let bookmarker = book_path.split('/').collect::<Vec<&str>>()[2];
             update_bookmark(bookmarker, new_hash, None)?;
-        },
+        }
         _ => {
-            println!("{}: {} --> {}: {}",
-            format!("OLD").bright_blue(),
-            &old_hash[0..7],
-            format!("NEW").bright_yellow(),
-            &new_hash[0..7]);
+            println!(
+                "{}: {} --> {}: {}",
+                "OLD".bright_blue(),
+                &old_hash[0..7],
+                "NEW".bright_yellow(),
+                &new_hash[0..7]
+            );
 
             let book_path = read_head()?;
             let bookmarker = book_path.split('/').collect::<Vec<&str>>()[2];
@@ -81,13 +84,12 @@ fn read_head() -> Result<String> {
 
     let prefix_path = referece.split(' ').collect::<Vec<&str>>();
 
-    return Ok(prefix_path[1].to_string())
+    Ok(prefix_path[1].to_string())
 }
 
 fn head_hash() -> Result<Option<String>> {
-
     let head_item = read_head()?;
-    if head_item.contains("/") {
+    if head_item.contains('/') {
         let bookmarker = head_item.split('/').collect::<Vec<&str>>()[2];
         let bookmark_path = gadget::get_bookmarks_path(bookmarker)?;
 
@@ -95,11 +97,11 @@ fn head_hash() -> Result<Option<String>> {
         let mut hash = String::new();
         file.read_to_string(&mut hash).unwrap();
 
-        if hash == "".to_string() {
-            return Ok(None)
+        if hash == *"" {
+            return Ok(None);
         }
 
-        return Ok(Some(hash))
+        return Ok(Some(hash));
     }
 
     Ok(Some(head_item))
@@ -109,7 +111,7 @@ fn update_bookmark(bookmarker: &str, new_commit: &str, old_commit: Option<&str>)
     let bookmark_path = gadget::get_bookmarks_path(bookmarker)?;
 
     let raw_content = file_system::read_object(new_commit)?;
-    if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == String::from("c") {
+    if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -118,12 +120,22 @@ fn update_bookmark(bookmarker: &str, new_commit: &str, old_commit: Option<&str>)
         let mut bookmark_hash = String::new();
         file.read_to_string(&mut bookmark_hash)?;
 
-        if bookmark_hash == "".to_owned() {
+        if bookmark_hash.is_empty() {
             file.write_all(new_commit.as_bytes())?;
-        } else if bookmark_hash == old_commit.unwrap().to_owned() {
-            file.write_all(new_commit.as_bytes())?;
+        } else if let Some(commit) = old_commit {
+            if bookmark_hash == commit {
+                file.write_all(new_commit.as_bytes())?;
+            } else {
+                bail!(
+                    "This bookmarker has the difference old hash ({})",
+                    bookmark_hash
+                );
+            }
         } else {
-            bail!("This bookmarker has the differnce old hash ({})", bookmark_hash)
+            bail!(
+                "This bookmarker has the difference old hash ({})",
+                bookmark_hash
+            );
         }
     } else {
         bail!("Not commit hash <new commit> ({})", new_commit)
@@ -132,16 +144,14 @@ fn update_bookmark(bookmarker: &str, new_commit: &str, old_commit: Option<&str>)
     Ok(())
 }
 
-fn write_tree() -> Result<String>{
+fn write_tree() -> Result<String> {
     let index = Index::from_rawindex()?;
     let tree_dir = tree_map(index)?;
 
     let mut repo_tree_hash = String::new();
     let mut dir_entry_map: HashMap<PathBuf, Entry> = HashMap::new();
     for m in tree_dir {
-
         let mut entries: Vec<Entry> = vec![];
-
 
         for path in m.1 {
             if path.is_file() {
@@ -163,16 +173,15 @@ fn write_tree() -> Result<String>{
         if m.0 == gadget::get_repo_path()? {
             repo_tree_hash = hash
         }
-    }    
+    }
 
     Ok(repo_tree_hash)
 }
 
-
-fn tree_map(index: Index) -> Result<Vec<(PathBuf,Vec<PathBuf>)>> {
+fn tree_map(index: Index) -> Result<Vec<(PathBuf, Vec<PathBuf>)>> {
     let mut file_paths: Vec<PathBuf> = vec![];
     let mut dir_paths: Vec<PathBuf> = vec![];
-    for filemeta in index.clone().filemetas {
+    for filemeta in index.filemetas {
         let repo_path = gadget::get_repo_path()?;
         let file_path = repo_path.join(filemeta.filename);
         let mut dir_name = file_path.parent().unwrap().to_path_buf();
@@ -185,10 +194,9 @@ fn tree_map(index: Index) -> Result<Vec<(PathBuf,Vec<PathBuf>)>> {
 
             dir_name = dir_name.parent().unwrap().to_path_buf();
         }
-    };
+    }
     dir_paths.sort();
     dir_paths.dedup();
-
 
     let mut temp_map: HashMap<PathBuf, Vec<PathBuf>> = HashMap::new();
     for dir in &dir_paths {
@@ -196,14 +204,19 @@ fn tree_map(index: Index) -> Result<Vec<(PathBuf,Vec<PathBuf>)>> {
 
         for file in &file_paths {
             if dir == &file.parent().unwrap().to_path_buf() {
-                temp_map.get_mut(&dir.to_path_buf()).unwrap().push(file.to_path_buf())
-            } 
+                temp_map
+                    .get_mut(&dir.to_path_buf())
+                    .unwrap()
+                    .push(file.to_path_buf())
+            }
         }
 
         for sub_dir in &dir_paths {
             if dir == &sub_dir.parent().unwrap().to_path_buf() {
-
-                temp_map.get_mut(&dir.to_path_buf()).unwrap().push(sub_dir.to_path_buf())
+                temp_map
+                    .get_mut(&dir.to_path_buf())
+                    .unwrap()
+                    .push(sub_dir.to_path_buf())
             }
         }
     }

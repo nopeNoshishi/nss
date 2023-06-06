@@ -3,7 +3,7 @@ use anyhow::Result;
 use super::object::Hashable;
 
 /// **Commit Struct**
-/// 
+///
 /// This struct represents ...
 #[derive(Debug, Clone)]
 pub struct Commit {
@@ -16,11 +16,15 @@ pub struct Commit {
 
 impl Commit {
     /// Create commit with the repo tree object, config infomation and message.
-    /// 
+    ///
     /// This tree_hash must be in the database.
-    pub fn new<S: Into<String>> (tree_hash: S, parent: S, author: S, 
-        committer: S, message: S) -> Result<Self>  {
-
+    pub fn new<S: Into<String>>(
+        tree_hash: S,
+        parent: S,
+        author: S,
+        committer: S,
+        message: S,
+    ) -> Result<Self> {
         Ok(Self {
             tree_hash: tree_hash.into(),
             parent: parent.into(),
@@ -57,11 +61,11 @@ impl Commit {
         let message = all_line[4].clone();
 
         Ok(Self {
-            tree_hash: tree_hash,
-            parent: parent,
-            author: author,
-            committer: committer,
-            message: message,
+            tree_hash,
+            parent,
+            author,
+            committer,
+            message,
         })
     }
 }
@@ -71,7 +75,7 @@ impl std::fmt::Display for Commit {
         let tree = format!("tree {}", self.tree_hash);
         let parent = match self.parent.as_str() {
             "None" => "parent None\n".to_string(),
-            _ => format!("parent {}\n", self.parent)
+            _ => format!("parent {}\n", self.parent),
         };
         let author = format!("author {}", self.author);
         let committer = format!("committer {}", self.committer);
@@ -89,12 +93,14 @@ impl Hashable for Commit {
         let tree_hash = format!("tree {}", self.tree_hash);
         let parent = match self.parent.as_str() {
             "None" => "parent None\n".to_string(),
-            _ => format!("parent {}\n", self.parent)
+            _ => format!("parent {}\n", self.parent),
         };
         let author = format!("author {}", self.author);
         let committer = format!("committer {}", self.committer);
-        let content = format!("{}\n{}{}\n{}\n\n{}\n", 
-            tree_hash, parent, author, committer, self.message);
+        let content = format!(
+            "{}\n{}{}\n{}\n\n{}\n",
+            tree_hash, parent, author, committer, self.message
+        );
         let store = format!("commit {}\0{}", content.len(), content);
 
         Vec::from(store.as_bytes())

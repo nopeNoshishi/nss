@@ -6,10 +6,10 @@ use anyhow::Result;
 use sha1::{Digest, Sha1};
 
 // Internal
-use super::{Blob, Tree, Commit};
+use super::{Blob, Commit, Tree};
 
 /// **Object Enum**
-/// 
+///
 /// This enum connect to all object.
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -20,10 +20,9 @@ pub enum Object {
 
 impl Object {
     /// Create object with the path.
-    /// 
+    ///
     /// This path must be in the working directory.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-
         match path.as_ref().is_file() {
             true => Blob::new(path.as_ref()).map(Object::Blob),
             false => Tree::new(path.as_ref()).map(Object::Tree),
@@ -36,16 +35,15 @@ impl Object {
         // header ≒ b"<object-type> <contnet-size>"
         let header = iter.next().unwrap().to_vec();
         let header = String::from_utf8(header)?;
-        let object_type = header.split(" ")
-            .collect::<Vec<&str>>()[0];
-        
+        let object_type = header.split(' ').collect::<Vec<&str>>()[0];
+
         // content ≒ b"<contnet>"
         let content = iter.next().unwrap();
         match object_type {
-            "blob" => return Blob::from_rawobject(content).map(Object::Blob),
-            "tree" => return Tree::from_rawobject(content).map(Object::Tree),
-            "commit" => return Commit::from_rawobject(content).map(Object::Commit),
-            _ => todo!()
+            "blob" => Blob::from_rawobject(content).map(Object::Blob),
+            "tree" => Tree::from_rawobject(content).map(Object::Tree),
+            "commit" => Commit::from_rawobject(content).map(Object::Commit),
+            _ => todo!(),
         }
     }
 

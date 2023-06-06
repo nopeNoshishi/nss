@@ -3,8 +3,8 @@
 use std::path::{Path, PathBuf};
 
 use super::up_snap;
-use crate::util::{gadget, file_system};
 use crate::struct_set::{Blob, Hashable};
+use crate::util::{file_system, gadget};
 
 use anyhow::Result;
 
@@ -16,7 +16,6 @@ pub fn shot(file_path: &str) -> Result<()> {
 }
 
 pub fn shot_all() -> Result<()> {
-
     let repo_path = gadget::get_repo_path()?;
     let all_files = gadget::get_all_paths_ignore(repo_path);
 
@@ -29,11 +28,11 @@ pub fn shot_all() -> Result<()> {
     Ok(())
 }
 
-fn write_blob<P: AsRef<Path>> (path: P) -> Result<()> {    
+fn write_blob<P: AsRef<Path>>(path: P) -> Result<()> {
     let blob = Blob::new(path.as_ref())?;
 
     let hash = hex::encode(blob.to_hash());
-    file_system::write_blob(&hash, blob)?;
+    file_system::write_blob(hash, blob)?;
 
     Ok(())
 }
