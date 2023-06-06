@@ -144,122 +144,121 @@ impl PartialEq for FileMeta {
     }
 }
 
-
 // #[cfg(test)]
 // mod tests {
 //     use super::*;
 //     use std::path::PathBuf;
 
-    // #[test]
-    // fn test_meta() {
-    //     let metadata = PathBuf::from("/Users/noshishi/study/nss/test/first.txt").metadata().unwrap();
+// #[test]
+// fn test_meta() {
+//     let metadata = PathBuf::from("/Users/noshishi/study/nss/test/first.txt").metadata().unwrap();
 
-    //     let ctime = metadata.ctime() as u32;
-    //     let ctime_nsec = metadata.ctime_nsec() as u32;
-    //     let mtime = metadata.mtime() as u32;
-    //     let mtime_nsec = metadata.mtime_nsec() as u32;
-    //     let dev: u32 = metadata.dev() as u32;
-    //     let ino = metadata.ino() as u32;
-    //     let mode = metadata.mode();
-    //     let uid = metadata.uid();
-    //     let gid = metadata.gid();
-    //     let filesize = metadata.size() as u32;
+//     let ctime = metadata.ctime() as u32;
+//     let ctime_nsec = metadata.ctime_nsec() as u32;
+//     let mtime = metadata.mtime() as u32;
+//     let mtime_nsec = metadata.mtime_nsec() as u32;
+//     let dev: u32 = metadata.dev() as u32;
+//     let ino = metadata.ino() as u32;
+//     let mode = metadata.mode();
+//     let uid = metadata.uid();
+//     let gid = metadata.gid();
+//     let filesize = metadata.size() as u32;
 
-    //     println!("{:?}", ctime.to_be_bytes());
-    //     println!("{:?}", ctime_nsec.to_be_bytes());
-    //     println!("{:?}", mtime.to_be_bytes());
-    //     println!("{:?}", mtime_nsec.to_be_bytes());
-    //     println!("{:?}", dev.to_be_bytes());
-    //     println!("{:?}", ino.to_be_bytes());
-    //     println!("{:?}", mode.to_be_bytes());
-    //     println!("{:0o}", mode);
-    //     println!("{:?}", uid.to_be_bytes());
-    //     println!("{:?}", gid.to_be_bytes());
-    //     println!("{:?}", filesize.to_be_bytes());
-    // }
-    // fn test_file_meta_new() {
-    //     // Create a temporary file
-    //     let mut file = NamedTempFile::new().unwrap();
-    //     writeln!(file, "Hello, world!").unwrap();
+//     println!("{:?}", ctime.to_be_bytes());
+//     println!("{:?}", ctime_nsec.to_be_bytes());
+//     println!("{:?}", mtime.to_be_bytes());
+//     println!("{:?}", mtime_nsec.to_be_bytes());
+//     println!("{:?}", dev.to_be_bytes());
+//     println!("{:?}", ino.to_be_bytes());
+//     println!("{:?}", mode.to_be_bytes());
+//     println!("{:0o}", mode);
+//     println!("{:?}", uid.to_be_bytes());
+//     println!("{:?}", gid.to_be_bytes());
+//     println!("{:?}", filesize.to_be_bytes());
+// }
+// fn test_file_meta_new() {
+//     // Create a temporary file
+//     let mut file = NamedTempFile::new().unwrap();
+//     writeln!(file, "Hello, world!").unwrap();
 
-    //     // Create a FileMeta instance using the temporary file
-    //     let file_meta = FileMeta::new(file.path()).unwrap();
+//     // Create a FileMeta instance using the temporary file
+//     let file_meta = FileMeta::new(file.path()).unwrap();
 
-    //     // Verify the FileMeta instance's properties
-    //     assert_eq!(file_meta.mode, 0o100644);
-    //     assert_eq!(file_meta.filename, file.path().to_str().unwrap());
-    //     assert_eq!(file_meta.hash.len(), 20); // Assuming SHA-1 hash size
+//     // Verify the FileMeta instance's properties
+//     assert_eq!(file_meta.mode, 0o100644);
+//     assert_eq!(file_meta.filename, file.path().to_str().unwrap());
+//     assert_eq!(file_meta.hash.len(), 20); // Assuming SHA-1 hash size
 
-    //     // Clean up: The temporary file will be deleted automatically
-    // }
+//     // Clean up: The temporary file will be deleted automatically
+// }
 
-    // #[test]
-    // fn test_file_meta_from_rawindex() {
-    //     // Create a sample raw index buffer
-    //     let buf = [
-    //         0, 0, 0, 1,  // ctime
-    //         0, 0, 0, 2,  // ctime_nsec
-    //         0, 0, 0, 3,  // mtime
-    //         0, 0, 0, 4,  // mtime_nsec
-    //         0, 0, 0, 5,  // dev
-    //         0, 0, 0, 6,  // ino
-    //         0, 0, 0, 7,  // mode
-    //         0, 0, 0, 8,  // uid
-    //         0, 0, 0, 9,  // gid
-    //         0, 0, 0, 10, // filesize
-    //         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, // hash
-    //         0, 1, // filename_size
-    //         b'f', b'i', b'l', b'e', b'.', b't', b'x', b't', // filename
-    //     ];
+// #[test]
+// fn test_file_meta_from_rawindex() {
+//     // Create a sample raw index buffer
+//     let buf = [
+//         0, 0, 0, 1,  // ctime
+//         0, 0, 0, 2,  // ctime_nsec
+//         0, 0, 0, 3,  // mtime
+//         0, 0, 0, 4,  // mtime_nsec
+//         0, 0, 0, 5,  // dev
+//         0, 0, 0, 6,  // ino
+//         0, 0, 0, 7,  // mode
+//         0, 0, 0, 8,  // uid
+//         0, 0, 0, 9,  // gid
+//         0, 0, 0, 10, // filesize
+//         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, // hash
+//         0, 1, // filename_size
+//         b'f', b'i', b'l', b'e', b'.', b't', b'x', b't', // filename
+//     ];
 
-    //     // Create a FileMeta instance from the raw index buffer
-    //     let file_meta = FileMeta::from_rawindex(&buf);
+//     // Create a FileMeta instance from the raw index buffer
+//     let file_meta = FileMeta::from_rawindex(&buf);
 
-    //     // Verify the FileMeta instance's properties
-    //     assert_eq!(file_meta.mode, 7);
-    //     assert_eq!(file_meta.filename, "file.txt");
-    //     assert_eq!(file_meta.hash, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    // }
+//     // Verify the FileMeta instance's properties
+//     assert_eq!(file_meta.mode, 7);
+//     assert_eq!(file_meta.filename, "file.txt");
+//     assert_eq!(file_meta.hash, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+// }
 
-    // #[test]
-    // fn test_file_meta_as_bytes() {
-    //     // Create a FileMeta instance
-    //     let file_meta = FileMeta {
-    //         ctime: 1,
-    //         ctime_nsec: 2,
-    //         mtime: 3,
-    //         mtime_nsec: 4,
-    //         dev: 5,
-    //         ino: 6,
-    //         mode: 7,
-    //         uid: 8,
-    //         gid: 9,
-    //         filesize: 10,
-    //         hash: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    //         filename_size: 1,
-    //         filename: "file.txt".to_string(),
-    //     };
+// #[test]
+// fn test_file_meta_as_bytes() {
+//     // Create a FileMeta instance
+//     let file_meta = FileMeta {
+//         ctime: 1,
+//         ctime_nsec: 2,
+//         mtime: 3,
+//         mtime_nsec: 4,
+//         dev: 5,
+//         ino: 6,
+//         mode: 7,
+//         uid: 8,
+//         gid: 9,
+//         filesize: 10,
+//         hash: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+//         filename_size: 1,
+//         filename: "file.txt".to_string(),
+//     };
 
-    //     // Convert the FileMeta to bytes
-    //     let bytes = file_meta.as_bytes();
+//     // Convert the FileMeta to bytes
+//     let bytes = file_meta.as_bytes();
 
-    //     // Verify the converted bytes
-    //     let expected_bytes = [
-    //         0, 0, 0, 1,  // ctime
-    //         0, 0, 0, 2,  // ctime_nsec
-    //         0, 0, 0, 3,  // mtime
-    //         0, 0, 0, 4,  // mtime_nsec
-    //         0, 0, 0, 5,  // dev
-    //         0, 0, 0, 6,  // ino
-    //         0, 0, 0, 7,  // mode
-    //         0, 0, 0, 8,  // uid
-    //         0, 0, 0, 9,  // gid
-    //         0, 0, 0, 10, // filesize
-    //         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, // hash
-    //         0, 1, // filename_size
-    //         b'f', b'i', b'l', b'e', b'.', b't', b'x', b't', // filename
-    //     ];
+//     // Verify the converted bytes
+//     let expected_bytes = [
+//         0, 0, 0, 1,  // ctime
+//         0, 0, 0, 2,  // ctime_nsec
+//         0, 0, 0, 3,  // mtime
+//         0, 0, 0, 4,  // mtime_nsec
+//         0, 0, 0, 5,  // dev
+//         0, 0, 0, 6,  // ino
+//         0, 0, 0, 7,  // mode
+//         0, 0, 0, 8,  // uid
+//         0, 0, 0, 9,  // gid
+//         0, 0, 0, 10, // filesize
+//         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, // hash
+//         0, 1, // filename_size
+//         b'f', b'i', b'l', b'e', b'.', b't', b'x', b't', // filename
+//     ];
 
-    //     assert_eq!(bytes, expected_bytes);
-    // }
+//     assert_eq!(bytes, expected_bytes);
+// }
 // }

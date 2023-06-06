@@ -122,7 +122,6 @@ pub fn read_object<S: AsRef<str>>(hash: S) -> Result<Vec<u8>> {
     Ok(object_content)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -133,7 +132,7 @@ mod tests {
     #[test]
     fn test_create_file_with_buffer() {
         // Create a temporary directory for testing
-        let temp_dir = testdir!{};
+        let temp_dir = testdir! {};
         println!("Test Directory: {:?}", temp_dir);
 
         // Target test file and buffer
@@ -160,7 +159,7 @@ mod tests {
     #[test]
     fn test_create_dir() {
         // Create a temporary directory for testing
-        let temp_dir = testdir!{};
+        let temp_dir = testdir! {};
         println!("Test Directory: {:?}", temp_dir);
 
         // Target test folder
@@ -180,7 +179,7 @@ mod tests {
     #[test]
     fn test_exists_repo() {
         // Create a temporary directory for testing
-        let temp_dir = testdir!{};
+        let temp_dir = testdir! {};
         println!("Test Directory: {:?}", temp_dir);
 
         // Create the .nss directory inside the temporary directory

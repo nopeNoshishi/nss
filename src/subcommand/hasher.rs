@@ -14,7 +14,6 @@ use crate::util::file_system;
 
 /// Calculate the hash value of the given file and output this.
 pub fn run<P: AsRef<Path>>(path: P) -> Result<()> {
-
     let blob = Blob::new(path.as_ref())?;
     println!("{}", hex::encode(blob.to_hash()));
 

@@ -60,7 +60,6 @@ impl Hashable for Blob {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,7 +94,7 @@ fn commit(message: &str) -> std::io::Result<()> {
         let blob = Blob::new(&file_path);
 
         assert!(blob.is_ok());
-        
+
         // Verify the Blob instance's properties
         let blob = blob.unwrap();
         assert_eq!(blob.name, Some(file_path));

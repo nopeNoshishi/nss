@@ -16,8 +16,8 @@ use anyhow::{bail, Result};
 
 // Internal
 use crate::struct_set::{Index, Object, Tree};
-use crate::util::gadget;
 use crate::util::file_system;
+use crate::util::gadget;
 
 pub fn run(target: &str) -> Result<()> {
     // target needs to be commit hash
