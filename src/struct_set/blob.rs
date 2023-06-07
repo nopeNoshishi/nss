@@ -85,7 +85,7 @@ fn commit(message: &str) -> std::io::Result<()> {
     };
 
     Ok(())
-        }";
+}";
 
         let mut file = File::create(&file_path).unwrap();
         file.write_all(buffer).unwrap();
@@ -116,7 +116,7 @@ fn commit(message: &str) -> std::io::Result<()> {
     };
 
     Ok(())
-        }";
+}";
 
         // Create a Blob instance from the raw object content
         let blob = Blob::from_rawobject(content).unwrap();
@@ -138,7 +138,7 @@ fn commit(message: &str) -> std::io::Result<()> {
     };
 
     Ok(())
-        }";
+}";
         let blob = Blob {
             name: Some(PathBuf::from("file.txt")),
             content: content.to_vec(),
@@ -148,7 +148,7 @@ fn commit(message: &str) -> std::io::Result<()> {
         let bytes = blob.as_bytes();
 
         // Verify the converted bytes
-        let expected_bytes = b"blob 258\0#[allow(dead_code)]
+        let expected_bytes = b"blob 250\0#[allow(dead_code)]
 fn commit(message: &str) -> std::io::Result<()> {
     let tree_hash = write_tree()?;
     match commit_tree(&tree_hash, message)? {
@@ -157,7 +157,7 @@ fn commit(message: &str) -> std::io::Result<()> {
     };
 
     Ok(())
-        }";
+}";
         assert_eq!(bytes, expected_bytes);
     }
 

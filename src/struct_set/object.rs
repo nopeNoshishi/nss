@@ -93,3 +93,26 @@ pub trait Hashable {
         Vec::from(Sha1::digest(&self.as_bytes()).as_slice())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_object_new() {}
+
+    #[test]
+    fn test_object_from_content() {}
+
+    #[test]
+    fn test_object_as_str() {}
+
+    #[test]
+    fn test_object_as_bytes() {}
+
+    #[test]
+    fn test_object_to_hash() {}
+
+    #[test]
+    fn test_object_display() {}
+}

@@ -106,3 +106,20 @@ impl Hashable for Commit {
         Vec::from(store.as_bytes())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_commit_new() {}
+
+    #[test]
+    fn test_commit_from_rawobject() {}
+
+    #[test]
+    fn test_commit_as_bytes() {}
+
+    #[test]
+    fn test_commit_display() {}
+}

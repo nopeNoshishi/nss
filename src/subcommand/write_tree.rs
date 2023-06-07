@@ -13,11 +13,12 @@ use anyhow::Result;
 
 // Internal
 use crate::struct_set::{Entry, Hashable, Index, Tree};
-use crate::util::{file_system, gadget};
+use crate::util::file_system;
+use crate::util::gadget::NssRepository;
 
-pub fn run() -> Result<()> {
+pub fn run(repository: NssRepository) -> Result<()> {
     let index = Index::from_rawindex()?;
-    let tree_dir = tree_map(index)?;
+    let tree_dir = tree_map(repository.path(), index)?;
 
     let mut repo_tree_hash = String::new();
     let mut dir_entry_map: HashMap<PathBuf, Entry> = HashMap::new();
@@ -39,9 +40,9 @@ pub fn run() -> Result<()> {
 
         let tree = Tree::from_entries(entries);
         let hash = hex::encode(tree.to_hash());
-        file_system::write_tree(&hash, tree)?;
+        file_system::write_object(repository.objects_path(&hash), tree)?;
 
-        if m.0 == gadget::get_repo_path()? {
+        if m.0 == repository.path() {
             repo_tree_hash = hash
         }
     }
@@ -51,11 +52,10 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-fn tree_map(index: Index) -> Result<Vec<(PathBuf, Vec<PathBuf>)>> {
+fn tree_map(repo_path: PathBuf, index: Index) -> Result<Vec<(PathBuf, Vec<PathBuf>)>> {
     let mut file_paths: Vec<PathBuf> = vec![];
     let mut dir_paths: Vec<PathBuf> = vec![];
     for filemeta in index.filemetas {
-        let repo_path = gadget::get_repo_path()?;
         let file_path = repo_path.join(filemeta.filename);
         let mut dir_name = file_path.parent().unwrap().to_path_buf();
 
@@ -111,4 +111,15 @@ fn tree_map(index: Index) -> Result<Vec<(PathBuf, Vec<PathBuf>)>> {
     }
 
     Ok(tree_dir)
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_run() {}
+
+    #[test]
+    fn test_tree_map() {}
 }

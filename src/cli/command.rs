@@ -33,11 +33,11 @@ Options:
     -h, --help     Print help information
     -V, --version  Print version information";
 
-    Command::new("nss")
+    Command::new("nssi")
         .about(
             "This is Original Version Management System.\nLearn git and rust for good developer.",
         )
-        .version("0.1.0")
+        .version(env!("CARGO_PKG_VERSION"))
         .author("Noshishi. <noshishi@noshishi.com>")
         .override_help(help)
         .arg_required_else_help(true)
@@ -243,7 +243,35 @@ fn debug_command() -> clap::Command {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::error::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn test_nss_command() {
+        let mut cmd = nss_command();
+
+        let res = cmd.try_get_matches_from_mut(vec!["nssi"]);
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err().kind(),
+            ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        );
+
+        let res = cmd.try_get_matches_from_mut(vec!["nssi", "test"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::InvalidSubcommand);
+
+        let res = cmd.try_get_matches_from_mut(vec!["nssi", "debug"]);
+        assert!(res.is_ok());
+
+        let res = cmd.try_get_matches_from_mut(vec!["nssi", "-h"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::DisplayHelp);
+
+        let res = cmd.try_get_matches_from_mut(vec!["nssi", "-V"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::DisplayVersion);
+    }
 
     #[test]
     fn test_hasher_command() {
@@ -251,6 +279,7 @@ mod tests {
 
         let res = cmd.try_get_matches_from_mut(vec!["hasher"]);
         assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::MissingRequiredArgument);
 
         let mut res = cmd.try_get_matches_from_mut(vec!["hasher", "first.txt"]);
         assert!(res.is_ok());
@@ -267,6 +296,7 @@ mod tests {
             .unwrap()
             .try_get_one::<String>("value")
             .is_err());
+
         assert!(!res.as_mut().unwrap().get_flag("write"));
 
         let mut res = cmd.try_get_matches_from_mut(vec!["hasher", "-w", "first.txt"]);
@@ -291,10 +321,13 @@ mod tests {
     fn test_ocat_command() {
         let mut cmd = ocat_command();
 
-        let res = cmd.try_get_matches_from_mut(vec!["go-to"]);
+        // No hash value
+        let res = cmd.try_get_matches_from_mut(vec!["ocat"]);
         assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::MissingRequiredArgument);
 
-        let mut res = cmd.try_get_matches_from_mut(vec!["go-to", "jfaf7GATG7ya"]);
+        // Get hash value
+        let mut res = cmd.try_get_matches_from_mut(vec!["ocat", "jfaf7GATG7ya"]);
         assert!(res.is_ok());
         assert_eq!(
             res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
@@ -304,60 +337,228 @@ mod tests {
             res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
             "6fawfwK234412"
         );
-        assert!(res
-            .as_mut()
-            .unwrap()
-            .try_get_one::<String>("value")
-            .is_err());
+
+        // // Get no setup value
+        assert!(res.as_mut().unwrap().try_get_one::<String>("test").is_err());
+
+        // Get hash value with -p option
+        let mut res = cmd.try_get_matches_from_mut(vec!["ocat", "jfaf7GATG7ya", "-p"]);
+
+        assert!(res.is_ok());
+        assert!(res.as_mut().unwrap().get_flag("pretty-print"));
+
+        // Get hash value with -t option
+        let mut res = cmd.try_get_matches_from_mut(vec!["ocat", "jfaf7GATG7ya", "-t"]);
+
+        assert!(res.is_ok());
+        assert!(res.as_mut().unwrap().get_flag("type"));
     }
 
-    // #[test]
-    // fn test_look_command() {
-    //     let mut cmd = look_command();
+    #[test]
+    fn test_look_command() {
+        let mut cmd = look_command();
 
-    //     let res = cmd.try_get_matches_from_mut(vec!["go-to"]);
-    //     assert!(res.is_err());
+        // No option
+        let res = cmd.try_get_matches_from_mut(vec!["lk-snap"]);
+        assert!(res.is_ok());
 
-    //     let mut res = cmd.try_get_matches_from_mut(vec!["go-to", "jfaf7GATG7ya"]);
-    //     assert!(res.is_ok());
-    //     assert_eq!(
-    //         res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
-    //         "jfaf7GATG7ya"
-    //     );
-    //     assert_ne!(
-    //         res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
-    //         "6fawfwK234412"
-    //     );
-    //     assert!(res
-    //         .as_mut()
-    //         .unwrap()
-    //         .try_get_one::<String>("value")
-    //         .is_err());
-    // }
+        // Not exepected value
+        let res = cmd.try_get_matches_from_mut(vec!["lk-snap", "jfaf7GATG7ya"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::UnknownArgument);
 
-    // #[test]
-    // fn test_index_command() {
-    //     let mut cmd = index_command();
+        // Run with -s option
+        let mut res = cmd.try_get_matches_from_mut(vec!["lk-snap", "-s"]);
 
-    //     let res = cmd.try_get_matches_from_mut(vec!["go-to"]);
-    //     assert!(res.is_err());
+        assert!(res.is_ok());
+        assert!(res.as_mut().unwrap().get_flag("stage"));
+    }
 
-    //     let mut res = cmd.try_get_matches_from_mut(vec!["go-to", "jfaf7GATG7ya"]);
-    //     assert!(res.is_ok());
-    //     assert_eq!(
-    //         res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
-    //         "jfaf7GATG7ya"
-    //     );
-    //     assert_ne!(
-    //         res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
-    //         "6fawfwK234412"
-    //     );
-    //     assert!(res
-    //         .as_mut()
-    //         .unwrap()
-    //         .try_get_one::<String>("value")
-    //         .is_err());
-    // }
+    #[test]
+    fn test_index_command() {
+        let mut cmd = index_command();
+
+        let res = cmd.try_get_matches_from_mut(vec!["up-snap"]);
+        assert!(res.is_ok());
+
+        let mut res = cmd.try_get_matches_from_mut(vec!["up-snap", "first.txt"]);
+        assert!(res.is_ok());
+        assert_eq!(
+            res.as_mut().unwrap().get_one::<String>("path").unwrap(),
+            "first.txt"
+        );
+        assert_ne!(
+            res.as_mut().unwrap().get_one::<String>("path").unwrap(),
+            "6fawfwK234412"
+        );
+        assert!(res.as_mut().unwrap().try_get_one::<String>("test").is_err());
+
+        // Run with -v option
+        let mut res = cmd.try_get_matches_from_mut(vec!["lk-snap", "-v"]);
+
+        assert!(res.is_ok());
+        assert!(res.as_mut().unwrap().get_flag("working"));
+    }
+
+    #[test]
+    fn test_write_command() {
+        let mut cmd = write_command();
+
+        // No option
+        let res = cmd.try_get_matches_from_mut(vec!["write-tree"]);
+        assert!(res.is_ok());
+
+        // Not exepected value
+        let res = cmd.try_get_matches_from_mut(vec!["write-tree", "jfaf7GATG7ya"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::UnknownArgument);
+    }
+
+    #[test]
+    fn test_voyage_command() {
+        let mut cmd = voyage_command();
+
+        let res = cmd.try_get_matches_from_mut(vec!["voyage"]);
+        assert!(res.is_ok());
+
+        let res = cmd.try_get_matches_from_mut(vec!["voyage", "first.txt"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::UnknownArgument);
+    }
+
+    #[test]
+    fn test_snap_command() {
+        let mut cmd = snap_command();
+
+        // No option
+        let res = cmd.try_get_matches_from_mut(vec!["snap"]);
+        assert!(res.is_ok());
+
+        // Not exepected value
+        let mut res = cmd.try_get_matches_from_mut(vec!["snap", "first.txt"]);
+        assert!(res.is_ok());
+        assert_eq!(
+            res.as_mut().unwrap().get_one::<String>("file").unwrap(),
+            "first.txt"
+        );
+        assert_ne!(
+            res.as_mut().unwrap().get_one::<String>("file").unwrap(),
+            "6fawfwK234412"
+        );
+        assert!(res.as_mut().unwrap().try_get_one::<String>("test").is_err());
+
+        // Run with -a option
+        let mut res = cmd.try_get_matches_from_mut(vec!["snap", "-A"]);
+
+        assert!(res.is_ok());
+        assert!(res.as_mut().unwrap().get_flag("all"));
+    }
+
+    #[test]
+    fn test_reg_command() {
+        let mut cmd = reg_command();
+
+        let res = cmd.try_get_matches_from_mut(vec!["reg"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::MissingRequiredArgument);
+
+        let mut res = cmd.try_get_matches_from_mut(vec!["reg", "-m", "initial"]);
+        assert!(res.is_ok());
+        assert_eq!(
+            res.as_mut().unwrap().get_one::<String>("message").unwrap(),
+            "initial"
+        );
+        assert_ne!(
+            res.as_mut().unwrap().get_one::<String>("message").unwrap(),
+            "6fawfwK234412"
+        );
+        assert!(res.as_mut().unwrap().try_get_one::<String>("test").is_err());
+    }
+
+    #[test]
+    fn test_bookemark_command() {
+        let mut cmd = bookemark_command();
+
+        // No option
+        let res = cmd.try_get_matches_from_mut(vec!["bookmark"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::MissingRequiredArgument);
+
+        // Get message value
+        let mut res = cmd.try_get_matches_from_mut(vec!["bookmark", "develop"]);
+        assert!(res.is_ok());
+        assert_eq!(
+            res.as_mut()
+                .unwrap()
+                .get_one::<String>("bookmarker")
+                .unwrap(),
+            "develop"
+        );
+        assert_ne!(
+            res.as_mut()
+                .unwrap()
+                .get_one::<String>("bookmarker")
+                .unwrap(),
+            "6fawfwK234412"
+        );
+        assert!(res.as_mut().unwrap().try_get_one::<String>("test").is_err());
+
+        // Get hash value
+        let mut res = cmd.try_get_matches_from_mut(vec!["bookmark", "develop", "6fawfwK234412"]);
+        assert!(res.is_ok());
+        assert_ne!(
+            res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
+            "develop"
+        );
+        assert_eq!(
+            res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
+            "6fawfwK234412"
+        );
+
+        // Run with -r option
+        let mut res = cmd.try_get_matches_from_mut(vec!["bookmark", "-r", "develop"]);
+
+        assert!(res.is_ok());
+        assert!(res.as_mut().unwrap().get_flag("replace"));
+    }
+
+    #[test]
+    fn test_ref_command() {
+        let mut cmd = ref_command();
+
+        // No option
+        let res = cmd.try_get_matches_from_mut(vec!["update-ref"]);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::MissingRequiredArgument);
+
+        // Get hash value
+        let mut res = cmd.try_get_matches_from_mut(vec!["update-ref", "6fawfwK234412"]);
+        assert!(res.is_ok());
+        assert_ne!(
+            res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
+            "first.txt"
+        );
+        assert_eq!(
+            res.as_mut().unwrap().get_one::<String>("hash").unwrap(),
+            "6fawfwK234412"
+        );
+        assert!(res.as_mut().unwrap().try_get_one::<String>("test").is_err());
+    }
+
+    #[test]
+    fn test_history_command() {
+        let mut cmd = history_command();
+
+        // No option
+        let res = cmd.try_get_matches_from_mut(vec!["story"]);
+        assert!(res.is_ok());
+
+        // Run with -s option
+        let mut res = cmd.try_get_matches_from_mut(vec!["story", "-s"]);
+
+        assert!(res.is_ok());
+        assert!(res.as_mut().unwrap().get_flag("short"));
+    }
 
     #[test]
     fn test_goto_command() {
@@ -365,6 +566,7 @@ mod tests {
 
         let res = cmd.try_get_matches_from_mut(vec!["go-to"]);
         assert!(res.is_err());
+        assert_eq!(res.unwrap_err().kind(), ErrorKind::MissingRequiredArgument);
 
         let mut res = cmd.try_get_matches_from_mut(vec!["go-to", "jfaf7GATG7ya"]);
         assert!(res.is_ok());

@@ -239,106 +239,19 @@ impl Hashable for Tree {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-// use super::FileMeta;
+#[cfg(test)]
+mod tests {
+    // use super::*;
 
-// #[test]
-// fn test_entry_new() {
-//     // Create a temporary file
-//     let mut file = NamedTempFile::new().unwrap();
-//     writeln!(file, "Hello, world!").unwrap();
+    #[test]
+    fn test_commit_new() {}
 
-//     // Create an Entry instance using the temporary file
-//     let entry = Entry::new(file.path()).unwrap();
+    #[test]
+    fn test_commit_from_rawobject() {}
 
-//     // Verify the Entry instance's properties
-//     assert_eq!(entry.mode, 0o100644);
-//     assert_eq!(entry.name, file.path().file_name().unwrap().to_string());
-//     assert_eq!(entry.hash.len(), 20); // Assuming SHA-1 hash size
+    #[test]
+    fn test_commit_as_bytes() {}
 
-//     // Clean up: The temporary file will be deleted automatically
-// }
-
-// #[test]
-// fn test_entry_new_group() {
-//     // Create sample entries
-//     let entries = vec![
-//         Entry {
-//             mode: 0o100644,
-//             name: "file1.txt".to_string(),
-//             hash: vec![1, 2, 3, 4],
-//         },
-//         Entry {
-//             mode: 0o100644,
-//             name: "file2.txt".to_string(),
-//             hash: vec![5, 6, 7, 8],
-//         },
-//     ];
-
-//     // Create an Entry instance representing a group of entries
-//     let entry = Entry::new_group("group".to_string(), entries).unwrap();
-
-//     // Verify the Entry instance's properties
-//     assert_eq!(entry.mode, 0o040000);
-//     assert_eq!(entry.name, "group");
-//     assert_eq!(entry.hash.len(), 20); // Assuming SHA-1 hash size
-
-//     // Verify the inner tree structure
-//     let tree = Tree::from_hash(entry.hash.clone()).unwrap();
-//     assert_eq!(tree.entries.len(), 2);
-
-//     // Clean up: No clean up required as this is a test scenario
-// }
-
-// #[test]
-// fn test_entry_from_rawobject() {
-//     // Create sample raw object metadata and hash
-//     let meta = b"100644 file.txt";
-//     let hash = b"abcdef0123456789abcdef0123456789abcdef01";
-
-//     // Create an Entry instance from the raw object metadata and hash
-//     let entry = Entry::from_rawobject(meta, hash).unwrap();
-
-//     // Verify the Entry instance's properties
-//     assert_eq!(entry.mode, 0o100644);
-//     assert_eq!(entry.name, "file.txt");
-//     assert_eq!(entry.hash, hash.to_vec());
-// }
-
-// #[test]
-// fn test_entry_as_bytes() {
-//     // Create an Entry instance
-//     let entry = Entry {
-//         mode: 0o100644,
-//         name: "file.txt".to_string(),
-//         hash: vec![1, 2, 3, 4],
-//     };
-
-//     // Convert the Entry to bytes
-//     let bytes = entry.as_bytes();
-
-//     // Verify the converted bytes
-//     let expected_bytes = b"100644 file.txt\0\x01\x02\x03\x04";
-//     assert_eq!(bytes, expected_bytes);
-// }
-
-// #[test]
-// fn test_entry_from_file_meta() {
-//     // Create a sample FileMeta instance
-//     let file_meta = FileMeta {
-//         mode: 0o100644,
-//         filename: "file.txt".to_string(),
-//         hash: vec![1, 2, 3, 4],
-//     };
-
-//     // Create an Entry instance from the FileMeta instance
-//     let entry = Entry::from(file_meta);
-
-//     // Verify the Entry instance's properties
-//     assert_eq!(entry.mode, 0o100644);
-//     assert_eq!(entry.name, "file.txt");
-//     assert_eq!(entry.hash, vec![1, 2, 3, 4]);
-// }
-// }
+    #[test]
+    fn test_commit_display() {}
+}

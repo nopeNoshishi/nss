@@ -30,3 +30,14 @@ pub fn run_option_s() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_run() {}
+
+    #[test]
+    fn test_run_option_s() {}
+}

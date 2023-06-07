@@ -17,60 +17,58 @@ use anyhow::{bail, Result};
 // Internal
 use crate::struct_set::{Index, Object, Tree};
 use crate::util::file_system;
-use crate::util::gadget;
+use crate::util::gadget::NssRepository;
 
-pub fn run(target: &str) -> Result<()> {
+// TODO: when delete or create , use tempolary dir
+pub fn run(repository: NssRepository, target: &str) -> Result<()> {
     // target needs to be commit hash
-    let tree = to_base_tree(target)?;
+    let tree = to_base_tree(repository.path(), target)?;
 
     // clean working directory
     delete_file()?;
 
     // restoration by tree
-    let repo_path = gadget::get_repo_path()?;
-    match create_file(tree.clone(), repo_path) {
+    match create_file(repository.path(), tree.clone(), repository.path()) {
         Ok(_) => {
             // update index
             let index = Index::try_from(tree)?;
-            let index_path = gadget::get_index_path()?;
-            let mut file = File::create(index_path)?;
+            let mut file = File::create(repository.index_path())?;
             file.write_all(&index.as_bytes())?;
             file.flush()?;
         }
         Err(e) => {
-            let head_hash = read_head()?.unwrap();
-            let raw_content = file_system::read_object(head_hash)?;
+            let head_hash = read_head(repository.clone())?.unwrap();
+            let raw_content = file_system::read_object(repository.path(), head_hash)?;
             let commit = match Object::from_content(raw_content)? {
                 Object::Commit(c) => c,
                 _ => bail!("{} is not commit hash", target),
             };
 
-            let raw_content = file_system::read_object(commit.tree_hash)?;
+            let raw_content = file_system::read_object(repository.path(), commit.tree_hash)?;
             let tree = match Object::from_content(raw_content)? {
                 Object::Tree(t) => t,
                 _ => bail!("{} is not tree hash", target),
             };
 
-            let repo_path = gadget::get_repo_path()?;
-            create_file(tree, repo_path)?;
+            create_file(repository.path(), tree, repository.path())?;
             bail!("{}\nCan't go to {}", e, target)
         }
     }
 
-    update_head(target)?;
+    update_head(repository, target)?;
 
     Ok(())
 }
 
-fn to_base_tree(target: &str) -> Result<Tree, anyhow::Error> {
-    let raw_content = file_system::read_object(target)?;
+fn to_base_tree(repo_path: PathBuf, target: &str) -> Result<Tree, anyhow::Error> {
+    let raw_content = file_system::read_object(repo_path.clone(), target)?;
     let commit = match Object::from_content(raw_content)? {
         Object::Commit(c) => c,
         _ => bail!("{} is not commit hash", target),
     };
 
     // target commit hash needs to have tree hash
-    let raw_content = file_system::read_object(&commit.tree_hash)?;
+    let raw_content = file_system::read_object(repo_path, &commit.tree_hash)?;
 
     match Object::from_content(raw_content)? {
         Object::Tree(t) => Ok(t),
@@ -88,11 +86,11 @@ fn delete_file() -> Result<()> {
     Ok(())
 }
 
-fn create_file(tree: Tree, prefix: PathBuf) -> Result<()> {
+fn create_file(repo_path: PathBuf, tree: Tree, prefix: PathBuf) -> Result<()> {
     for entry in tree.entries {
         let entry_hash = hex::encode(entry.hash);
 
-        let raw_content = file_system::read_object(entry_hash)?;
+        let raw_content = file_system::read_object(repo_path.clone(), entry_hash)?;
         match Object::from_content(raw_content)? {
             Object::Blob(b) => {
                 let path = prefix.join(entry.name);
@@ -101,7 +99,7 @@ fn create_file(tree: Tree, prefix: PathBuf) -> Result<()> {
                 file.write_all(&b.content)?;
                 file.flush()?;
             }
-            Object::Tree(t) => create_file(t, prefix.join(entry.name))?,
+            Object::Tree(t) => create_file(repo_path.clone(), t, prefix.join(entry.name))?,
             _ => bail!("This tree has commit hash. Please check lk-snap command!"),
         };
     }
@@ -109,10 +107,8 @@ fn create_file(tree: Tree, prefix: PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn read_head() -> Result<Option<String>> {
-    let head_path = gadget::get_head_path()?;
-
-    let mut file = File::open(head_path).unwrap();
+fn read_head(repository: NssRepository) -> Result<Option<String>> {
+    let mut file = File::open(repository.head_path()).unwrap();
     let mut referece = String::new();
     file.read_to_string(&mut referece).unwrap();
 
@@ -120,9 +116,8 @@ fn read_head() -> Result<Option<String>> {
 
     if prefix_path[1].contains('/') {
         let bookmarker = prefix_path[1].split('/').collect::<Vec<&str>>()[2];
-        let bookmark_path = gadget::get_bookmarks_path(bookmarker)?;
 
-        let mut file = File::open(bookmark_path).unwrap();
+        let mut file = File::open(repository.bookmarks_path(bookmarker)).unwrap();
         let mut hash = String::new();
         file.read_to_string(&mut hash).unwrap();
 
@@ -132,14 +127,24 @@ fn read_head() -> Result<Option<String>> {
     Ok(Some(prefix_path[1].to_owned()))
 }
 
-pub fn update_head(target: &str) -> Result<()> {
-    let head_path = gadget::get_head_path()?;
+pub fn update_head(repository: NssRepository, target: &str) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
-        .open(head_path)?;
+        .open(repository.head_path())?;
 
     file.write_all(format!("bookmarker: {}", target).as_bytes())?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_run() {}
+
+    #[test]
+    fn test_delete_file() {}
 }

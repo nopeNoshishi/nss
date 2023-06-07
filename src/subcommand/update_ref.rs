@@ -10,17 +10,16 @@ use std::io::prelude::*;
 use anyhow::{bail, Result};
 
 // Internal
-use crate::util::{file_system, gadget};
+use crate::util::file_system;
+use crate::util::gadget::NssRepository;
 
-pub fn run(new_commit: &str) -> Result<()> {
-    let head_path = gadget::get_head_path()?;
-
-    let raw_content = file_system::read_object(new_commit)?;
+pub fn run(repository: NssRepository, new_commit: &str) -> Result<()> {
+    let raw_content = file_system::read_object(repository.path(), new_commit)?;
     if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
         let mut file = OpenOptions::new()
             .write(true)
             .truncate(true)
-            .open(head_path)?;
+            .open(repository.head_path())?;
 
         file.write_all(format!("bookmarker: {}", new_commit).as_bytes())?;
     } else {
@@ -30,16 +29,19 @@ pub fn run(new_commit: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn run_option_b(bookmarker: &str, new_commit: &str, old_commit: Option<&str>) -> Result<()> {
-    let bookmark_path = gadget::get_bookmarks_path(bookmarker)?;
-
-    let raw_content = file_system::read_object(new_commit)?;
+pub fn run_option_b(
+    repository: NssRepository,
+    bookmarker: &str,
+    new_commit: &str,
+    old_commit: Option<&str>,
+) -> Result<()> {
+    let raw_content = file_system::read_object(repository.path(), new_commit)?;
     if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
             .truncate(true)
-            .open(bookmark_path)?;
+            .open(repository.bookmarks_path(bookmarker))?;
         let mut bookmark_hash = String::new();
         file.read_to_string(&mut bookmark_hash)?;
 
@@ -65,4 +67,15 @@ pub fn run_option_b(bookmarker: &str, new_commit: &str, old_commit: Option<&str>
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_run() {}
+
+    #[test]
+    fn test_run_option_b() {}
 }

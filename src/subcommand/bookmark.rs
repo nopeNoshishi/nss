@@ -13,22 +13,22 @@ use std::io::prelude::*;
 use anyhow::{bail, Context, Result};
 
 // Internal
-use crate::util::{file_system, gadget};
+use crate::util::file_system;
+use crate::util::gadget::NssRepository;
 
 /// Create a new bookmarker to argument commit hash.
 ///
 /// **Note:** If you do not specify a hash, it refers to the
 /// value pointed to by HEAD.
-pub fn run(book_name: &str, hash: Option<&String>) -> Result<()> {
-    let bookmark_path = gadget::get_bookmarks_path(book_name)?;
+pub fn run(repository: NssRepository, book_name: &str, hash: Option<&String>) -> Result<()> {
     match hash {
         Some(v) => {
-            let raw_content = file_system::read_object(v)?;
+            let raw_content = file_system::read_object(repository.path(), v)?;
             if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
                 let mut file = OpenOptions::new()
                     .create_new(true)
                     .write(true)
-                    .open(bookmark_path)
+                    .open(repository.bookmarks_path(book_name))
                     .with_context(|| format!("{} already exits", book_name))?;
 
                 file.write_all(v.as_bytes())?;
@@ -37,9 +37,8 @@ pub fn run(book_name: &str, hash: Option<&String>) -> Result<()> {
             }
         }
         _ => {
-            let head_path = gadget::get_head_path()?;
-            let head_hash = fs::read_to_string(head_path)?;
-            let mut file = File::create(bookmark_path)?;
+            let head_hash = fs::read_to_string(repository.head_path())?;
+            let mut file = File::create(repository.bookmarks_path(book_name))?;
             file.write_all(head_hash.as_bytes())?
         }
     }
@@ -50,16 +49,14 @@ pub fn run(book_name: &str, hash: Option<&String>) -> Result<()> {
 ///
 /// **Note:** If you do not specify a hash, it refers to the
 /// value pointed to by HEAD.
-pub fn run_option_r(bookmarker: &str, hash: &String) -> Result<()> {
-    let taregt_path = gadget::get_bookmarks_path(bookmarker)?;
-
+pub fn run_option_r(repository: NssRepository, bookmarker: &str, hash: &String) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
-        .open(taregt_path)
+        .open(repository.bookmarks_path(bookmarker))
         .with_context(|| format!("No such bookmarker: {}", bookmarker))?;
 
-    let raw_content = file_system::read_object(hash)?;
+    let raw_content = file_system::read_object(repository.path(), hash)?;
     if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
         file.write_all(hash.as_bytes())?;
     } else {
@@ -69,4 +66,13 @@ pub fn run_option_r(bookmarker: &str, hash: &String) -> Result<()> {
     Ok(())
 }
 
-// TODO: off  opitionする！
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_run() {}
+
+    #[test]
+    fn test_run_option_r() {}
+}
