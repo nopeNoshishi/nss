@@ -1,17 +1,17 @@
 // Std
-use std::os::unix::prelude::MetadataExt;
-use std::path::PathBuf;
+use std::path::Path;
 
 // External
 use anyhow::Result;
-use byteorder::{ByteOrder, BigEndian};
+use byteorder::{BigEndian, ByteOrder};
+use serde::{Deserialize, Serialize};
 
 // Internal
-use crate::util::gadget;
 use super::{Blob, Hashable};
+use crate::util::file_system;
 
 /// TODO: Documentation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FileMeta {
     pub ctime: u32,
     pub ctime_nsec: u32,
@@ -30,7 +30,14 @@ pub struct FileMeta {
 
 impl FileMeta {
     /// TODO: Documentation
-    pub fn new(path: &PathBuf) -> Result<Self> {
+    pub fn new<P>(path: P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        // NOTE: Only unix metadata
+        use std::os::unix::prelude::MetadataExt;
+
+        let path = path.as_ref();
         // Exstract metadata on file
         let metadata = path.metadata().unwrap();
         let ctime = metadata.ctime() as u32;
@@ -39,26 +46,38 @@ impl FileMeta {
         let mtime_nsec = metadata.mtime_nsec() as u32;
         let dev = metadata.dev() as u32;
         let ino = metadata.ino() as u32;
-        let mode = metadata.mode() as u32;
-        let uid = metadata.uid() as u32;
-        let gid= metadata.gid() as u32;
+        let mode = metadata.mode();
+        let uid = metadata.uid();
+        let gid = metadata.gid();
         let filesize = metadata.size() as u32;
 
         let object = Blob::new(path).unwrap();
         let hash = object.to_hash();
 
-        let repo_path = gadget::get_repo_path()?;
-
         // absolute path -> relative path (from repo path)
-        let filename = path.strip_prefix(&repo_path).unwrap()
-            .to_str().unwrap()
+        let repo_path = file_system::exists_repo::<P>(None)?;
+        let filename = path
+            .strip_prefix(&repo_path)
+            .unwrap()
+            .to_str()
+            .unwrap()
             .to_string();
         let filename_size = filename.len() as u16;
 
-
         Ok(Self {
-            ctime, ctime_nsec, mtime, mtime_nsec, dev, ino, mode, uid, gid, 
-            filesize, hash, filename_size, filename
+            ctime,
+            ctime_nsec,
+            mtime,
+            mtime_nsec,
+            dev,
+            ino,
+            mode,
+            uid,
+            gid,
+            filesize,
+            hash,
+            filename_size,
+            filename,
         })
     }
 
@@ -72,34 +91,73 @@ impl FileMeta {
         let ino = BigEndian::read_u32(&buf[20..24]);
         let mode = BigEndian::read_u32(&buf[24..28]);
         let uid = BigEndian::read_u32(&buf[28..32]);
-        let gid= BigEndian::read_u32(&buf[32..36]);
+        let gid = BigEndian::read_u32(&buf[32..36]);
         let filesize = BigEndian::read_u32(&buf[36..40]);
         let hash = Vec::from(&buf[40..60]);
         let filename_size = BigEndian::read_u16(&buf[60..62]);
-        let filename = String::from_utf8(Vec::from(&buf[62..(62+(filename_size as usize))])).unwrap();
+        let filename =
+            String::from_utf8(Vec::from(&buf[62..(62 + (filename_size as usize))])).unwrap();
 
         Self {
-            ctime, ctime_nsec, mtime, mtime_nsec, dev, ino, mode, uid, gid, 
-            filesize, hash, filename_size, filename
+            ctime,
+            ctime_nsec,
+            mtime,
+            mtime_nsec,
+            dev,
+            ino,
+            mode,
+            uid,
+            gid,
+            filesize,
+            hash,
+            filename_size,
+            filename,
         }
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
-        let entry_meta = [self.ctime.to_be_bytes(), self.ctime_nsec.to_be_bytes(),
-            self.mtime.to_be_bytes(), self.mtime_nsec.to_be_bytes(), self.dev.to_be_bytes(),
-            self.ino.to_be_bytes(), self.mode.to_be_bytes(), self.uid.to_be_bytes(),
-            self.gid.to_be_bytes(), self.filesize.to_be_bytes()].concat();
+        let entry_meta = [
+            self.ctime.to_be_bytes(),
+            self.ctime_nsec.to_be_bytes(),
+            self.mtime.to_be_bytes(),
+            self.mtime_nsec.to_be_bytes(),
+            self.dev.to_be_bytes(),
+            self.ino.to_be_bytes(),
+            self.mode.to_be_bytes(),
+            self.uid.to_be_bytes(),
+            self.gid.to_be_bytes(),
+            self.filesize.to_be_bytes(),
+        ]
+        .concat();
 
-        let filemeta_vec = [entry_meta, self.hash.clone(), Vec::from(self.filename_size.to_be_bytes()),
-            self.filename.as_bytes().to_vec()].concat();
-        
+        let filemeta_vec = [
+            entry_meta,
+            self.hash.clone(),
+            Vec::from(self.filename_size.to_be_bytes()),
+            self.filename.as_bytes().to_vec(),
+        ]
+        .concat();
+
         filemeta_vec
     }
 }
 
-/// TODO: Documentation
 impl PartialEq for FileMeta {
     fn eq(&self, other: &Self) -> bool {
         self.hash == other.hash
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_filemeta_new() {}
+
+    #[test]
+    fn test_filemeta_from_rawindex() {}
+
+    #[test]
+    fn test_filemeta_partialeq() {}
 }

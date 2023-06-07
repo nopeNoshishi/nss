@@ -1,6 +1,6 @@
 [package]
 name = "nssi"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 rust-version = "1.65"
 authors = ["noshishi"]
@@ -26,3 +26,7 @@ flate2 = "1.0.25"
 sha-1 = "0.9.1"
 hex = "0.4.2"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+testdir = "0.7.3"

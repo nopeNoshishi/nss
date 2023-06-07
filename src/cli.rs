@@ -1,3 +1,3 @@
-pub mod cli;
+pub mod command;
 
-pub(crate) use cli::nss_command;
+pub(crate) use command::nss_command;

@@ -1,97 +1,120 @@
-
 // Std
 use std::fs::File;
 use std::io::prelude::*;
 
 // External
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use colored::*;
 
 // Internal
 use crate::struct_set::Object;
-use crate::util::{gadget, file_system};
+use crate::util::file_system;
+use crate::util::gadget::NssRepository;
 
-pub fn run() -> Result<()> {
-    let head_hash = match read_head()? {
+pub fn run(repository: NssRepository) -> Result<()> {
+    let head_hash = match read_head(repository.clone())? {
         Some(h) => h,
-        _ => bail!("No history yet. You start new journey!")
+        _ => bail!("No history yet. You start new journey!"),
     };
 
-    go_back(&head_hash)?;
+    go_back(repository, &head_hash)?;
 
     Ok(())
 }
 
-pub fn run_option_s() -> Result<()> {
-    let head_hash = match read_head()? {
+pub fn run_option_s(repository: NssRepository) -> Result<()> {
+    let head_hash = match read_head(repository.clone())? {
         Some(h) => h,
-        _ => bail!("No history yet. You start new journey!")
+        _ => bail!("No history yet. You start new journey!"),
     };
 
-    go_back_option_s(&head_hash)?;
+    go_back_option_s(repository, &head_hash)?;
 
     Ok(())
 }
 
-fn go_back(hash: &str) -> Result<()> {
-    let raw_content = file_system::read_object(hash)?;
+#[allow(clippy::format_in_format_args)]
+fn go_back(repository: NssRepository, hash: &str) -> Result<()> {
+    let raw_content = file_system::read_object(repository.path(), hash)?;
     let object: Object = Object::from_content(raw_content)?;
 
     let commit = match object {
         Object::Commit(c) => c,
-        _ => todo!()
+        _ => todo!(),
     };
 
-    println!("{}\n{}\n\n\t{}\n",
+    println!(
+        "{}\n{}\n\n\t{}\n",
         format!("commit: {}", hash).yellow(),
         format!("Author: {}", commit.author),
-        format!("   {}", commit.message));
-    
-    if commit.parent != "None".to_string() {
-        go_back(&commit.parent)?
+        format!("   {}", commit.message)
+    );
+
+    if commit.parent != *"None" {
+        go_back(repository, &commit.parent)?
     }
 
     Ok(())
 }
 
-fn go_back_option_s(hash: &str) -> Result<()> {
-    let raw_content = file_system::read_object(hash)?;
+#[allow(clippy::format_in_format_args)]
+fn go_back_option_s(repository: NssRepository, hash: &str) -> Result<()> {
+    let raw_content = file_system::read_object(repository.path(), hash)?;
     let object: Object = Object::from_content(raw_content)?;
 
     let commit = match object {
         Object::Commit(c) => c,
-        _ => todo!()
+        _ => todo!(),
     };
 
-    println!("{} {}",
-        format!("{}", &hash[0..7]).yellow(),
-        format!("{}", commit.message));
-    if commit.parent != "None".to_string() {
-        go_back_option_s(&commit.parent)?
+    println!(
+        "{} {}",
+        format!("{:?}", &hash[0..7]).yellow(),
+        format!("{}", commit.message)
+    );
+    if commit.parent != *"None" {
+        go_back_option_s(repository, &commit.parent)?
     }
 
     Ok(())
 }
 
-fn read_head() -> Result<Option<String>> {
-    let head_path = gadget::get_head_path()?;
-
-    let mut file = File::open(head_path).unwrap();
+fn read_head(repository: NssRepository) -> Result<Option<String>> {
+    let mut file = File::open(repository.head_path()).unwrap();
     let mut referece = String::new();
     file.read_to_string(&mut referece).unwrap();
 
     let prefix_path = referece.split(' ').collect::<Vec<&str>>();
 
-    if prefix_path[1].contains("/") {
+    if prefix_path[1].contains('/') {
         let bookmarker = prefix_path[1].split('/').collect::<Vec<&str>>()[2];
-        let bookmark_path = gadget::get_bookmarks_path(bookmarker)?;
 
-        let mut file = File::open(bookmark_path).unwrap();
+        let mut file = File::open(repository.bookmarks_path(bookmarker)).unwrap();
         let mut hash = String::new();
         file.read_to_string(&mut hash).unwrap();
 
-        return Ok(Some(hash))
+        return Ok(Some(hash));
     }
 
     Ok(Some(prefix_path[1].to_owned()))
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_run() {}
+
+    #[test]
+    fn test_run_option_s() {}
+
+    #[test]
+    fn test_go_back() {}
+
+    #[test]
+    fn test_go_back_option_s() {}
+
+    #[test]
+    fn test_read_head() {}
 }

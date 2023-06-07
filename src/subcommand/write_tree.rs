@@ -1,30 +1,29 @@
 //! **Write-tree command** Base command: `git write-tree`
-//! 
+//!
 //! /// TODO: Documentation
-//! 
-//! 
+//!
+//!
 
 // Std
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 // External
 use anyhow::Result;
 
 // Internal
-use crate::struct_set::{Index, Entry, Tree, Hashable};
-use crate::util::{gadget, file_system};
+use crate::struct_set::{Entry, Hashable, Index, Tree};
+use crate::util::file_system;
+use crate::util::gadget::NssRepository;
 
-pub fn run() -> Result<()>{
+pub fn run(repository: NssRepository) -> Result<()> {
     let index = Index::from_rawindex()?;
-    let tree_dir = tree_map(index)?;
+    let tree_dir = tree_map(repository.path(), index)?;
 
     let mut repo_tree_hash = String::new();
     let mut dir_entry_map: HashMap<PathBuf, Entry> = HashMap::new();
     for m in tree_dir {
-
         let mut entries: Vec<Entry> = vec![];
-
 
         for path in m.1 {
             if path.is_file() {
@@ -36,28 +35,27 @@ pub fn run() -> Result<()>{
             }
         }
 
-        let dir_entry = Entry::new_group(m.0.to_path_buf(), entries.clone())?;
+        let dir_entry = Entry::new_group(&m.0, entries.clone())?;
         dir_entry_map.insert(m.0.to_path_buf(), dir_entry);
 
         let tree = Tree::from_entries(entries);
         let hash = hex::encode(tree.to_hash());
-        file_system::write_tree(&hash, tree)?;
+        file_system::write_object(repository.objects_path(&hash), tree)?;
 
-        if m.0 == gadget::get_repo_path()? {
+        if m.0 == repository.path() {
             repo_tree_hash = hash
         }
-    }    
+    }
 
     println!("Tree hash: {}", repo_tree_hash);
 
     Ok(())
 }
 
-fn tree_map(index: Index) -> Result<Vec<(PathBuf,Vec<PathBuf>)>> {
+fn tree_map(repo_path: PathBuf, index: Index) -> Result<Vec<(PathBuf, Vec<PathBuf>)>> {
     let mut file_paths: Vec<PathBuf> = vec![];
     let mut dir_paths: Vec<PathBuf> = vec![];
-    for filemeta in index.clone().filemetas {
-        let repo_path = gadget::get_repo_path()?;
+    for filemeta in index.filemetas {
         let file_path = repo_path.join(filemeta.filename);
         let mut dir_name = file_path.parent().unwrap().to_path_buf();
 
@@ -69,10 +67,9 @@ fn tree_map(index: Index) -> Result<Vec<(PathBuf,Vec<PathBuf>)>> {
 
             dir_name = dir_name.parent().unwrap().to_path_buf();
         }
-    };
+    }
     dir_paths.sort();
     dir_paths.dedup();
-
 
     let mut temp_map: HashMap<PathBuf, Vec<PathBuf>> = HashMap::new();
     for dir in &dir_paths {
@@ -80,14 +77,19 @@ fn tree_map(index: Index) -> Result<Vec<(PathBuf,Vec<PathBuf>)>> {
 
         for file in &file_paths {
             if dir == &file.parent().unwrap().to_path_buf() {
-                temp_map.get_mut(&dir.to_path_buf()).unwrap().push(file.to_path_buf())
-            } 
+                temp_map
+                    .get_mut(&dir.to_path_buf())
+                    .unwrap()
+                    .push(file.to_path_buf())
+            }
         }
 
         for sub_dir in &dir_paths {
             if dir == &sub_dir.parent().unwrap().to_path_buf() {
-
-                temp_map.get_mut(&dir.to_path_buf()).unwrap().push(sub_dir.to_path_buf())
+                temp_map
+                    .get_mut(&dir.to_path_buf())
+                    .unwrap()
+                    .push(sub_dir.to_path_buf())
             }
         }
     }
@@ -109,4 +111,15 @@ fn tree_map(index: Index) -> Result<Vec<(PathBuf,Vec<PathBuf>)>> {
     }
 
     Ok(tree_dir)
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_run() {}
+
+    #[test]
+    fn test_tree_map() {}
 }

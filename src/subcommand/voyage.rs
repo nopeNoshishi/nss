@@ -1,57 +1,96 @@
 //! **init command** ... Base command: `git init`
-//! 
+//!
 //! Create current directory as a new repository.
 
 // Std
-use std::env;
-use std::path::PathBuf;
-use std::fs::File;
-use std::io::prelude::*;
+use std::path::Path;
 
 // External
 use anyhow::Result;
 
 // Internal
-use crate::util::gadget;
+use crate::util::file_system::*;
 
 /// Build the necessary repository directories.
-/// 
+///
 /// **Note:** Basically, the repository is managed through Absolute Pas.
-pub fn run() -> Result<()> {
-    let nss_dirs = [".nss", ".nss/bookmarks", ".nss/objects",
-                               ".nss/bookmarks/local", ".nss/memo"];
-    
-    for dir_path in nss_dirs {
-        gadget::create_dir(&PathBuf::from(dir_path))?
-    }
+pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
+    let repo_path = repo_path.as_ref();
 
-    // Resister repository directory path
-    let nss_path = ".nss/repo";
-    let mut file = File::create(nss_path)?;
-    let repo_location = env::current_dir()?;
-    file.write_all(repo_location.to_str().unwrap().as_bytes())?;
+    // Initial Directory
+    create_dir(repo_path.join(".nss"))?;
+    create_dir(repo_path.join(".nss").join("bookmarks"))?;
+    create_dir(repo_path.join(".nss").join("objects"))?;
+    create_dir(repo_path.join(".nss").join("bookmarks").join("local"))?;
+    create_dir(repo_path.join(".nss").join("memo"))?;
 
-    // Identify author's working commit
-    let head_path = ".nss/HEAD";
-    let mut file = File::create(head_path)?;
-    file.write_all(b"bookmarker: bookmarks/local/voyage")?;
+    // Initial File
+    create_file_with_buffer(
+        repo_path.join(".nss").join("repo"),
+        repo_path.to_str().unwrap().as_bytes(),
+    )?;
+    create_file_with_buffer(
+        repo_path.join(".nss").join("HEAD"),
+        b"bookmarker: bookmarks/local/voyage",
+    )?;
+    create_file_with_buffer(repo_path.join(".nss").join("config"), b"remotes: []")?;
+    create_file_with_buffer(repo_path.join(".nss").join("INDEX"), b"")?;
+    create_file_with_buffer(
+        repo_path
+            .join(".nss")
+            .join("bookmarks")
+            .join("local")
+            .join("voyage"),
+        b"",
+    )?;
 
-    // Manage user's profile
-    let config_path = ".nss/config";
-    let mut file = File::create(config_path)?;
-    file.write_all(b"remotes: []")?;
-
-    // Index (Stagin area) cashe
-    let index_path = ".nss/INDEX";
-    File::create(index_path)?;
-
-    // Create first main bookmarker
-    let first_bookmark_path = ".nss/bookmarks/local/voyage";
-    File::create(first_bookmark_path)?;
-
-    let repo_path = gadget::get_repo_path()?;
     let repo_name = repo_path.file_name().unwrap();
     println!("Created repository! Repository name: {:?}", repo_name);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use testdir::testdir;
+
+    #[test]
+    fn test_run() {
+        // Create a temporary directory for testing
+        let temp_dir = testdir! {};
+        println!("Test Directory: {:?}", temp_dir);
+
+        // Run the function test
+        assert!(run(&temp_dir).is_ok());
+
+        // Verify that the expected files and directories are created
+        assert!(temp_dir.join(".nss").is_dir());
+        assert!(temp_dir.join(".nss").join("bookmarks").is_dir());
+        assert!(temp_dir.join(".nss").join("objects").is_dir());
+        assert!(temp_dir
+            .join(".nss")
+            .join("bookmarks")
+            .join("local")
+            .is_dir());
+        assert!(temp_dir.join(".nss").join("memo").is_dir());
+
+        assert!(temp_dir.join(".nss").join("repo").is_file());
+        assert!(temp_dir.join(".nss").join("HEAD").is_file());
+        assert!(temp_dir.join(".nss").join("config").is_file());
+        assert!(temp_dir.join(".nss").join("INDEX").is_file());
+        assert!(temp_dir
+            .join(".nss")
+            .join("bookmarks")
+            .join("local")
+            .join("voyage")
+            .is_file());
+
+        // Already existed repository
+        assert!(run(&temp_dir).is_err());
+
+        // Clean up: Remove the temporary directory
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
 }

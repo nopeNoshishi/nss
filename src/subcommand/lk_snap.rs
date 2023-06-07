@@ -1,15 +1,12 @@
 //! **Parser command** ... Base command: `git ls-files`
 
-
 // External
-use  anyhow::Result;
+use anyhow::Result;
 
 // Internal
 use crate::struct_set::Index;
 
-
-
-pub fn run() -> Result<()>{
+pub fn run() -> Result<()> {
     let index = Index::from_rawindex()?;
 
     for filemeta in index.filemetas {
@@ -23,8 +20,24 @@ pub fn run_option_s() -> Result<()> {
     let index = Index::from_rawindex()?;
 
     for filemeta in index.filemetas {
-        println!("{:0>6o} {} 0\t{}", filemeta.mode, hex::encode(filemeta.hash), filemeta.filename);
+        println!(
+            "{:0>6o} {} 0\t{}",
+            filemeta.mode,
+            hex::encode(filemeta.hash),
+            filemeta.filename
+        );
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_run() {}
+
+    #[test]
+    fn test_run_option_s() {}
 }
