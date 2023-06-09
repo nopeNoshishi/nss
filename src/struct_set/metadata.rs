@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 // Internal
 use super::{Blob, Hashable};
-use crate::util::file_system;
+use crate::nss_io::file_system;
 
 /// TODO: Documentation
 #[derive(Debug, Clone, Deserialize, Serialize)]

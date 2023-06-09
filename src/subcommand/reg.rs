@@ -12,8 +12,8 @@ use colored::*;
 
 // Internal
 use crate::struct_set::{Commit, Entry, Hashable, Index, Tree};
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::nss_io::file_system;
+use crate::repo::NssRepository;
 
 pub fn run(repository: NssRepository, massage: &str) -> Result<()> {
     // Create tree object from index
@@ -36,7 +36,7 @@ pub fn run(repository: NssRepository, massage: &str) -> Result<()> {
 
     // Write commit object
     let hash = hex::encode(commit.to_hash());
-    file_system::write_object(repository.objects_path(&hash), commit.clone())?;
+    repository.write_object(commit.clone())?;
 
     display_result(repository, commit.parent.as_str(), hash.as_str())?;
 
@@ -111,8 +111,8 @@ fn update_bookmark(
     new_commit: &str,
     old_commit: Option<&str>,
 ) -> Result<()> {
-    let raw_content = file_system::read_object(repository.path(), new_commit)?;
-    if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
+    let object = repository.read_object(new_commit)?;
+    if object.as_str() == "commit" {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -146,7 +146,7 @@ fn update_bookmark(
 }
 
 fn write_tree(repository: NssRepository) -> Result<String> {
-    let index = Index::from_rawindex()?;
+    let index = repository.read_index()?;
     let tree_dir = tree_map(index)?;
 
     let mut repo_tree_hash = String::new();
@@ -169,9 +169,9 @@ fn write_tree(repository: NssRepository) -> Result<String> {
 
         let tree = Tree::from_entries(entries);
         let hash = hex::encode(tree.to_hash());
-        file_system::write_object(repository.objects_path(&hash), tree)?;
+        repository.write_object(tree)?;
 
-        if m.0 == file_system::exists_repo::<PathBuf>(None)? {
+        if m.0 == repository.path() {
             repo_tree_hash = hash
         }
     }

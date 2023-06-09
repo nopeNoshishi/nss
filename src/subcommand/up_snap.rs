@@ -11,11 +11,10 @@ use anyhow::Result;
 
 // Internal
 use crate::struct_set::Index;
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::repo::NssRepository;
 
 pub fn run(repository: NssRepository, file_path: &str) -> Result<()> {
-    let mut index = match Index::from_rawindex() {
+    let mut index = match repository.read_index() {
         Ok(index) => index,
         Err(e) => {
             println!("{}", e);
@@ -34,7 +33,7 @@ pub fn run(repository: NssRepository, file_path: &str) -> Result<()> {
 }
 
 pub fn run_all(repository: NssRepository) -> Result<()> {
-    let index = Index::new_all(repository.path())?;
+    let index = Index::new_all(&repository)?;
 
     let mut file = File::create(repository.index_path())?;
     file.write_all(&index.as_bytes())?;
@@ -44,7 +43,7 @@ pub fn run_all(repository: NssRepository) -> Result<()> {
 }
 
 pub fn run_option_w(repository: NssRepository) -> Result<()> {
-    let mut all_paths = file_system::get_all_paths_ignore(repository.path(), &repository.path());
+    let mut all_paths = repository.get_all_paths_ignore(&repository.path());
     all_paths.sort();
 
     println!("[List of files to be tracked]");

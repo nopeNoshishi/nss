@@ -1,17 +1,21 @@
+// Std
+use std::env;
+use std::path::PathBuf;
+
 // External
 use anyhow::{bail, Result};
-use std::path::PathBuf;
 
 // Internal
 pub mod cli;
 pub mod struct_set;
 pub mod subcommand;
-pub mod util;
+pub mod nss_io;
+pub mod repo;
 
 use cli::*;
 use subcommand::*;
-use util::file_system;
-use util::gadget::NssRepository;
+use nss_io::file_system;
+use repo::NssRepository;
 
 /// Parse argument and run commnad  
 fn main() -> Result<()> {
@@ -23,10 +27,11 @@ fn main() -> Result<()> {
                 // hasher
                 Some(("hasher", sub_m)) => {
                     let path = sub_m.get_one::<std::path::PathBuf>("file").unwrap();
+                    let current_dir = env::current_dir()?;
 
                     match sub_m.get_flag("write") {
-                        true => hasher::run_option_w(NssRepository::new(repo_path), path)?,
-                        _ => hasher::run(NssRepository::new(repo_path), path)?,
+                        true => hasher::run_option_w(current_dir.join(path), NssRepository::new(repo_path))?,
+                        _ => hasher::run(current_dir.join(path))?,
                     }
                 }
 
@@ -47,8 +52,8 @@ fn main() -> Result<()> {
 
                 // look snap
                 Some(("lk-snap", sub_m)) => match sub_m.get_flag("stage") {
-                    true => lk_snap::run_option_s()?,
-                    _ => lk_snap::run()?,
+                    true => lk_snap::run_option_s(NssRepository::new(repo_path))?,
+                    _ => lk_snap::run(NssRepository::new(repo_path))?,
                 },
 
                 // update snapshot

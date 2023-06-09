@@ -10,12 +10,11 @@ use std::io::prelude::*;
 use anyhow::{bail, Result};
 
 // Internal
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::repo::NssRepository;
 
 pub fn run(repository: NssRepository, new_commit: &str) -> Result<()> {
-    let raw_content = file_system::read_object(repository.path(), new_commit)?;
-    if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
+    let object = repository.read_object(new_commit)?;
+    if object.as_str() == "commit" {
         let mut file = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -35,8 +34,8 @@ pub fn run_option_b(
     new_commit: &str,
     old_commit: Option<&str>,
 ) -> Result<()> {
-    let raw_content = file_system::read_object(repository.path(), new_commit)?;
-    if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
+    let object = repository.read_object(new_commit)?;
+    if object.as_str() == "commit" {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)

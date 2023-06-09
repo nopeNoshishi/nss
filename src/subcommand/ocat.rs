@@ -7,16 +7,12 @@
 use anyhow::Result;
 
 // Internal
-use crate::struct_set::Object;
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::repo::NssRepository;
 
 /// Register the object into object database (repository)
 /// and Display on standart-output.
 pub fn run_option_p(repository: NssRepository, hash: &str) -> Result<()> {
-    let raw_content = file_system::read_object(repository.path(), hash)?;
-    let object: Object = Object::from_content(raw_content)?;
-
+    let object = repository.read_object(hash)?;
     println!("{}", object);
 
     Ok(())
@@ -24,8 +20,7 @@ pub fn run_option_p(repository: NssRepository, hash: &str) -> Result<()> {
 
 /// Output the object type
 pub fn run_option_t(repository: NssRepository, hash: &str) -> anyhow::Result<()> {
-    let raw_content = file_system::read_object(repository.path(), hash)?;
-    let object: Object = Object::from_content(raw_content)?;
+    let object = repository.read_object(hash)?;
 
     println!("{}", object.as_str());
 

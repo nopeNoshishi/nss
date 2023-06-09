@@ -3,9 +3,8 @@
 use std::path::{Path, PathBuf};
 
 use super::up_snap;
-use crate::struct_set::{Blob, Hashable};
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::struct_set::Blob;
+use crate::repo::NssRepository;
 
 use anyhow::Result;
 
@@ -17,7 +16,7 @@ pub fn shot(repository: NssRepository, file_path: &str) -> Result<()> {
 }
 
 pub fn shot_all(repository: NssRepository) -> Result<()> {
-    let all_files = file_system::get_all_paths_ignore(repository.path(), &repository.path());
+    let all_files = repository.get_all_paths_ignore(repository.path());
 
     for file_path in all_files {
         write_blob(repository.clone(), file_path)?;
@@ -31,8 +30,7 @@ pub fn shot_all(repository: NssRepository) -> Result<()> {
 fn write_blob<P: AsRef<Path>>(repository: NssRepository, path: P) -> Result<()> {
     let blob = Blob::new(path.as_ref())?;
 
-    let hash = hex::encode(blob.to_hash());
-    file_system::write_object(repository.objects_path(hash), blob)?;
+    repository.write_object(blob)?;
 
     Ok(())
 }

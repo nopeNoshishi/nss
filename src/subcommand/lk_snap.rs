@@ -4,10 +4,10 @@
 use anyhow::Result;
 
 // Internal
-use crate::struct_set::Index;
+use crate::repo::NssRepository;
 
-pub fn run() -> Result<()> {
-    let index = Index::from_rawindex()?;
+pub fn run(repository: NssRepository) -> Result<()> {
+    let index = repository.read_index()?;
 
     for filemeta in index.filemetas {
         println!("{}", filemeta.filename);
@@ -16,8 +16,8 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-pub fn run_option_s() -> Result<()> {
-    let index = Index::from_rawindex()?;
+pub fn run_option_s(repository: NssRepository) -> Result<()> {
+    let index = repository.read_index()?;
 
     for filemeta in index.filemetas {
         println!(

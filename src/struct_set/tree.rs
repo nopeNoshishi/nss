@@ -242,9 +242,23 @@ impl Hashable for Tree {
 #[cfg(test)]
 mod tests {
     // use super::*;
+    use std::fs;
+    use std::path::PathBuf;
 
     #[test]
-    fn test_commit_new() {}
+    fn test_commit_new() {
+        let content = fs::read_to_string(".nssignore").unwrap();
+        println!("{:?}", content);
+        let lines = content.lines();
+
+        let repo_path = PathBuf::from("User/noshishi/work");
+
+        for l in lines.into_iter().filter(|line| !line.contains('#') || line.is_empty()).map(|line| repo_path.join(line)) {
+            println!("{:?}", l);
+        }
+        
+
+    }
 
     #[test]
     fn test_commit_from_rawobject() {}

@@ -13,11 +13,10 @@ use anyhow::Result;
 
 // Internal
 use crate::struct_set::{Entry, Hashable, Index, Tree};
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::repo::NssRepository;
 
 pub fn run(repository: NssRepository) -> Result<()> {
-    let index = Index::from_rawindex()?;
+    let index = repository.read_index()?;
     let tree_dir = tree_map(repository.path(), index)?;
 
     let mut repo_tree_hash = String::new();
@@ -40,7 +39,7 @@ pub fn run(repository: NssRepository) -> Result<()> {
 
         let tree = Tree::from_entries(entries);
         let hash = hex::encode(tree.to_hash());
-        file_system::write_object(repository.objects_path(&hash), tree)?;
+        repository.write_object(tree)?;
 
         if m.0 == repository.path() {
             repo_tree_hash = hash

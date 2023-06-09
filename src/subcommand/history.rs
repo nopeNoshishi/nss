@@ -7,9 +7,8 @@ use anyhow::{bail, Result};
 use colored::*;
 
 // Internal
-use crate::struct_set::Object;
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::struct_set::{Hashable, Object};
+use crate::repo::NssRepository;
 
 pub fn run(repository: NssRepository) -> Result<()> {
     let head_hash = match read_head(repository.clone())? {
@@ -35,12 +34,11 @@ pub fn run_option_s(repository: NssRepository) -> Result<()> {
 
 #[allow(clippy::format_in_format_args)]
 fn go_back(repository: NssRepository, hash: &str) -> Result<()> {
-    let raw_content = file_system::read_object(repository.path(), hash)?;
-    let object: Object = Object::from_content(raw_content)?;
+    let object = repository.read_object(hash)?;
 
     let commit = match object {
-        Object::Commit(c) => c,
-        _ => todo!(),
+        Object::Commit(commit) => commit,
+        _ => bail!("Not commit hash ({})", hex::encode(object.to_hash()))
     };
 
     println!(
@@ -59,8 +57,7 @@ fn go_back(repository: NssRepository, hash: &str) -> Result<()> {
 
 #[allow(clippy::format_in_format_args)]
 fn go_back_option_s(repository: NssRepository, hash: &str) -> Result<()> {
-    let raw_content = file_system::read_object(repository.path(), hash)?;
-    let object: Object = Object::from_content(raw_content)?;
+    let object = repository.read_object(hash)?;
 
     let commit = match object {
         Object::Commit(c) => c,

@@ -16,19 +16,19 @@ use anyhow::{bail, Result};
 
 // Internal
 use crate::struct_set::{Index, Object, Tree};
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::nss_io::file_system;
+use crate::repo::NssRepository;
 
 // TODO: when delete or create , use tempolary dir
 pub fn run(repository: NssRepository, target: &str) -> Result<()> {
     // target needs to be commit hash
-    let tree = to_base_tree(repository.path(), target)?;
+    let tree = to_base_tree(&repository, target)?;
 
     // clean working directory
-    delete_file()?;
+    delete_file(&repository)?;
 
     // restoration by tree
-    match create_file(repository.path(), tree.clone(), repository.path()) {
+    match create_file(&repository, tree.clone(), repository.path()) {
         Ok(_) => {
             // update index
             let index = Index::try_from(tree)?;
@@ -38,19 +38,17 @@ pub fn run(repository: NssRepository, target: &str) -> Result<()> {
         }
         Err(e) => {
             let head_hash = read_head(repository.clone())?.unwrap();
-            let raw_content = file_system::read_object(repository.path(), head_hash)?;
-            let commit = match Object::from_content(raw_content)? {
+            let commit = match repository.read_object(head_hash)? {
                 Object::Commit(c) => c,
                 _ => bail!("{} is not commit hash", target),
             };
 
-            let raw_content = file_system::read_object(repository.path(), commit.tree_hash)?;
-            let tree = match Object::from_content(raw_content)? {
+            let tree = match repository.read_object(commit.tree_hash)? {
                 Object::Tree(t) => t,
                 _ => bail!("{} is not tree hash", target),
             };
 
-            create_file(repository.path(), tree, repository.path())?;
+            create_file(&repository, tree, repository.path())?;
             bail!("{}\nCan't go to {}", e, target)
         }
     }
@@ -60,24 +58,21 @@ pub fn run(repository: NssRepository, target: &str) -> Result<()> {
     Ok(())
 }
 
-fn to_base_tree(repo_path: PathBuf, target: &str) -> Result<Tree, anyhow::Error> {
-    let raw_content = file_system::read_object(repo_path.clone(), target)?;
-    let commit = match Object::from_content(raw_content)? {
+fn to_base_tree(repository: &NssRepository, target: &str) -> Result<Tree, anyhow::Error> {
+    let commit = match repository.read_object(target)? {
         Object::Commit(c) => c,
         _ => bail!("{} is not commit hash", target),
     };
 
     // target commit hash needs to have tree hash
-    let raw_content = file_system::read_object(repo_path, &commit.tree_hash)?;
-
-    match Object::from_content(raw_content)? {
+    match repository.read_object(&commit.tree_hash)? {
         Object::Tree(t) => Ok(t),
         _ => bail!("{} is not tree hash", &commit.tree_hash),
     }
 }
 
-fn delete_file() -> Result<()> {
-    let index = Index::from_rawindex()?;
+fn delete_file(repository: &NssRepository) -> Result<()> {
+    let index = repository.read_index()?;
 
     for path in index.filemetas {
         fs::remove_file(path.filename)?
@@ -86,12 +81,11 @@ fn delete_file() -> Result<()> {
     Ok(())
 }
 
-fn create_file(repo_path: PathBuf, tree: Tree, prefix: PathBuf) -> Result<()> {
+fn create_file(repository: &NssRepository, tree: Tree, prefix: PathBuf) -> Result<()> {
     for entry in tree.entries {
         let entry_hash = hex::encode(entry.hash);
 
-        let raw_content = file_system::read_object(repo_path.clone(), entry_hash)?;
-        match Object::from_content(raw_content)? {
+        match repository.read_object(entry_hash)? {
             Object::Blob(b) => {
                 let path = prefix.join(entry.name);
                 file_system::create_dir(path.parent().unwrap()).context("No create")?;
@@ -99,7 +93,7 @@ fn create_file(repo_path: PathBuf, tree: Tree, prefix: PathBuf) -> Result<()> {
                 file.write_all(&b.content)?;
                 file.flush()?;
             }
-            Object::Tree(t) => create_file(repo_path.clone(), t, prefix.join(entry.name))?,
+            Object::Tree(t) => create_file(repository, t, prefix.join(entry.name))?,
             _ => bail!("This tree has commit hash. Please check lk-snap command!"),
         };
     }

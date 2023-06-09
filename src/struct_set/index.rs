@@ -1,6 +1,4 @@
 // Std
-use std::fs::File;
-use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
 // External
@@ -9,8 +7,8 @@ use byteorder::{BigEndian, ByteOrder};
 
 // Internal
 use super::{FileMeta, Object, Tree};
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use crate::nss_io::file_system;
+use crate::repo::repository::NssRepository;
 
 /// TODO: Documentation
 #[derive(Debug, Clone)]
@@ -23,8 +21,8 @@ impl Index {
         Self { filemetas: vec![] }
     }
 
-    pub fn new_all(repo_path: PathBuf) -> Result<Self> {
-        let mut all_paths = file_system::get_all_paths_ignore(repo_path.clone(), repo_path);
+    pub fn new_all(repository: &NssRepository) -> Result<Self> {
+        let mut all_paths = repository.get_all_paths_ignore(repository.path());
         all_paths.sort();
 
         let filemetas = all_paths
@@ -35,13 +33,7 @@ impl Index {
         Ok(Self { filemetas })
     }
 
-    pub fn from_rawindex() -> Result<Self> {
-        let repo_path = file_system::exists_repo::<PathBuf>(None)?;
-        let index_path = NssRepository::new(repo_path).index_path();
-
-        let mut file = File::open(index_path)?;
-        let mut buf: Vec<u8> = Vec::new();
-        file.read_to_end(&mut buf)?;
+    pub fn from_rawindex(buf: Vec::<u8>) -> Result<Self> {
 
         if buf == Vec::<u8>::new() {
             bail!("First index");
@@ -126,7 +118,7 @@ impl TryFrom<Tree> for Index {
         let mut paths: Vec<PathBuf> = vec![];
 
         let repo_path = file_system::exists_repo::<PathBuf>(None)?;
-        push_paths(&mut paths, tree, &repo_path.clone(), repo_path.clone())?;
+        push_paths(NssRepository::new(repo_path.clone()), &mut paths, tree, &repo_path.clone())?;
 
         for file_path in paths {
             index.add(&repo_path, &file_path)?
@@ -137,10 +129,10 @@ impl TryFrom<Tree> for Index {
 }
 
 fn push_paths(
+    repository: NssRepository,
     paths: &mut Vec<PathBuf>,
     tree: Tree,
     base_path: &Path,
-    repo_path: PathBuf,
 ) -> Result<()> {
     for entry in tree.entries {
         let path = base_path.join(entry.name);
@@ -148,19 +140,19 @@ fn push_paths(
             paths.push(path);
         } else {
             let hash = hex::encode(entry.hash);
-            let sub_tree = to_tree(repo_path.clone(), &hash)?;
+            let sub_tree = to_tree(repository.clone(), &hash)?;
 
-            push_paths(paths, sub_tree, &path, repo_path.clone())?
+            push_paths(repository.clone(), paths, sub_tree, &path)?
         }
     }
 
     Ok(())
 }
 
-fn to_tree(repo_path: PathBuf, hash: &str) -> Result<Tree, anyhow::Error> {
-    let raw_content = file_system::read_object(repo_path, hash)?;
+fn to_tree(repository: NssRepository, hash: &str) -> Result<Tree, anyhow::Error> {
+    let object = repository.read_object(hash)?;
 
-    match Object::from_content(raw_content)? {
+    match object {
         Object::Tree(t) => Ok(t),
         _ => bail!("{} is not tree hash", hash),
     }
