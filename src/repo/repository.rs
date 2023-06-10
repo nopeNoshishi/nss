@@ -10,8 +10,8 @@ use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 
-use crate::struct_set::{Object, Index, Hashable};
 use crate::nss_io::file_system;
+use crate::struct_set::{Hashable, Index, Object};
 
 // Manager for repository absolute path
 #[derive(Debug, Clone)]
@@ -67,18 +67,17 @@ impl NssRepository {
 
     pub fn read_index(&self) -> Result<Index> {
         // read index
-        let mut file = File::open(self.index_path())
-            .with_context(|| "Index doesn't exit in this repository")?;
+        let mut file = File::open(self.index_path()).with_context(|| "First index!")?;
         let mut bytes = Vec::new();
         file.read_to_end(&mut bytes)
-            .with_context(|| "Index can't be read")?;
+            .with_context(|| "Index can't be read. Reset all!")?;
 
         Index::from_rawindex(bytes)
     }
 
-    pub fn write_object<H>(&self, object: H) -> Result<()> 
+    pub fn write_object<H>(&self, object: H) -> Result<()>
     where
-        H: Hashable
+        H: Hashable,
     {
         let object_path = self.objects_path(hex::encode(object.to_hash()));
         file_system::create_dir(object_path.parent().unwrap())?;
@@ -147,10 +146,12 @@ impl NssRepository {
 
     pub fn ext_paths<P: AsRef<Path>>(&self, target: P, paths: &mut Vec<PathBuf>) -> Result<()> {
         // Print all files in target directory
-        let files = target
-            .as_ref()
-            .read_dir()
-            .with_context(|| format!("{:?} object database has no objects", target.as_ref()))?;
+        let files = target.as_ref().read_dir().with_context(|| {
+            format!(
+                "{} object database has no objects",
+                target.as_ref().display()
+            )
+        })?;
 
         for dir_entry in files {
             let path = dir_entry.unwrap().path();
@@ -186,18 +187,18 @@ impl NssRepository {
         match fs::read_to_string(".nssignore") {
             Ok(content) => {
                 let lines = content.lines();
-                ignore_paths.extend(lines.into_iter().filter(|line| !line.contains('#') || line.is_empty()).map(|line| self.path().join(line)));
-            },
-            Err(..) => println!("You may set ignore file.")
+                ignore_paths.extend(
+                    lines
+                        .into_iter()
+                        .filter(|line| !line.contains('#') || line.is_empty())
+                        .map(|line| self.path().join(line)),
+                );
+            }
+            Err(..) => println!("You may set ignore file."),
         }
-        
+
         // Program ignore folder
-        ignore_paths.extend(vec![
-            self.path().join(".git"),
-            self.path().join(".nss"),
-            self.path().join(".gitignore"),
-            self.path().join(".nssignore"),
-        ]);
+        ignore_paths.extend(vec![self.path().join(".git"), self.path().join(".nss")]);
 
         for dir_entry in files {
             let path = dir_entry.unwrap().path();
@@ -220,8 +221,7 @@ impl NssRepository {
             paths.push(path);
         }
         paths.sort();
-}
-
+    }
 }
 
 #[cfg(test)]

@@ -10,7 +10,6 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Result};
 use dirs::home_dir;
 
-
 pub fn create_file_with_buffer<P: AsRef<Path>>(file_path: P, buffer: &[u8]) -> std::io::Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
@@ -64,7 +63,7 @@ mod tests {
     fn test_create_file_with_buffer() {
         // Create a temporary directory for testing
         let temp_dir = testdir!();
-        println!("Test Directory: {:?}", temp_dir);
+        println!("Test Directory: {}", temp_dir.display());
 
         // Target test file and buffer
         let file_path = temp_dir.join("test_file.txt");
@@ -91,7 +90,7 @@ mod tests {
     fn test_create_dir() {
         // Create a temporary directory for testing
         let temp_dir = testdir!();
-        println!("Test Directory: {:?}", temp_dir);
+        println!("Test Directory: {}", temp_dir.display());
 
         // Target test folder
         let dir_path = temp_dir.join("test_dir").join("test_sub_dir");
@@ -111,7 +110,7 @@ mod tests {
     fn test_exists_repo() {
         // Create a temporary directory for testing
         let temp_dir = testdir!();
-        println!("Test Directory: {:?}", temp_dir);
+        println!("Test Directory: {}", temp_dir.display());
 
         // Create the .nss directory inside the temporary directory
         let nss_dir = temp_dir.join(".nss");
