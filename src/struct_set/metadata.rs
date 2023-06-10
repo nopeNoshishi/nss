@@ -1,4 +1,5 @@
 // Std
+use std::ffi::OsString;
 use std::path::Path;
 
 // External
@@ -25,7 +26,7 @@ pub struct FileMeta {
     pub filesize: u32,
     pub hash: Vec<u8>,
     pub filename_size: u16,
-    pub filename: String,
+    pub filename: OsString,
 }
 
 impl FileMeta {
@@ -59,9 +60,8 @@ impl FileMeta {
         let filename = path
             .strip_prefix(&repo_path)
             .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+            .as_os_str()
+            .to_os_string();
         let filename_size = filename.len() as u16;
 
         Ok(Self {
@@ -95,9 +95,9 @@ impl FileMeta {
         let filesize = BigEndian::read_u32(&buf[36..40]);
         let hash = Vec::from(&buf[40..60]);
         let filename_size = BigEndian::read_u16(&buf[60..62]);
-        let filename =
-            String::from_utf8(Vec::from(&buf[62..(62 + (filename_size as usize))])).unwrap();
-
+        let filename = OsString::from(
+            String::from_utf8(Vec::from(&buf[62..(62 + (filename_size as usize))])).unwrap(),
+        );
         Self {
             ctime,
             ctime_nsec,
@@ -134,7 +134,7 @@ impl FileMeta {
             entry_meta,
             self.hash.clone(),
             Vec::from(self.filename_size.to_be_bytes()),
-            self.filename.as_bytes().to_vec(),
+            self.filename.to_str().unwrap().as_bytes().to_vec(),
         ]
         .concat();
 

@@ -33,8 +33,7 @@ impl Index {
         Ok(Self { filemetas })
     }
 
-    pub fn from_rawindex(buf: Vec::<u8>) -> Result<Self> {
-
+    pub fn from_rawindex(buf: Vec<u8>) -> Result<Self> {
         if buf == Vec::<u8>::new() {
             bail!("First index");
         }
@@ -118,7 +117,12 @@ impl TryFrom<Tree> for Index {
         let mut paths: Vec<PathBuf> = vec![];
 
         let repo_path = file_system::exists_repo::<PathBuf>(None)?;
-        push_paths(NssRepository::new(repo_path.clone()), &mut paths, tree, &repo_path.clone())?;
+        push_paths(
+            NssRepository::new(repo_path.clone()),
+            &mut paths,
+            tree,
+            &repo_path.clone(),
+        )?;
 
         for file_path in paths {
             index.add(&repo_path, &file_path)?
