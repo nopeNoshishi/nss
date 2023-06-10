@@ -12,7 +12,7 @@ use anyhow::{bail, Result};
 // Internal
 use crate::repo::NssRepository;
 
-pub fn run(repository: NssRepository, new_commit: &str) -> Result<()> {
+pub fn run(repository: &NssRepository, new_commit: &str) -> Result<()> {
     let object = repository.read_object(new_commit)?;
     if object.as_str() == "commit" {
         let mut file = OpenOptions::new()
@@ -29,7 +29,7 @@ pub fn run(repository: NssRepository, new_commit: &str) -> Result<()> {
 }
 
 pub fn run_option_b(
-    repository: NssRepository,
+    repository: &NssRepository,
     bookmarker: &str,
     new_commit: &str,
     old_commit: Option<&str>,

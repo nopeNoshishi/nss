@@ -19,7 +19,7 @@ use crate::repo::NssRepository;
 ///
 /// **Note:** If you do not specify a hash, it refers to the
 /// value pointed to by HEAD.
-pub fn run(repository: NssRepository, book_name: &str, hash: Option<&String>) -> Result<()> {
+pub fn run(repository: &NssRepository, book_name: &str, hash: Option<&String>) -> Result<()> {
     match hash {
         Some(v) => {
             let object = repository.read_object(v)?;
@@ -48,7 +48,7 @@ pub fn run(repository: NssRepository, book_name: &str, hash: Option<&String>) ->
 ///
 /// **Note:** If you do not specify a hash, it refers to the
 /// value pointed to by HEAD.
-pub fn run_option_r(repository: NssRepository, bookmarker: &str, hash: &String) -> Result<()> {
+pub fn run_option_r(repository: &NssRepository, bookmarker: &str, hash: &String) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)

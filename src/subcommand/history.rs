@@ -7,11 +7,11 @@ use anyhow::{bail, Result};
 use colored::*;
 
 // Internal
-use crate::struct_set::{Hashable, Object};
 use crate::repo::NssRepository;
+use crate::struct_set::{Hashable, Object};
 
-pub fn run(repository: NssRepository) -> Result<()> {
-    let head_hash = match read_head(repository.clone())? {
+pub fn run(repository: &NssRepository) -> Result<()> {
+    let head_hash = match read_head(repository)? {
         Some(h) => h,
         _ => bail!("No history yet. You start new journey!"),
     };
@@ -21,8 +21,8 @@ pub fn run(repository: NssRepository) -> Result<()> {
     Ok(())
 }
 
-pub fn run_option_s(repository: NssRepository) -> Result<()> {
-    let head_hash = match read_head(repository.clone())? {
+pub fn run_option_s(repository: &NssRepository) -> Result<()> {
+    let head_hash = match read_head(repository)? {
         Some(h) => h,
         _ => bail!("No history yet. You start new journey!"),
     };
@@ -33,12 +33,12 @@ pub fn run_option_s(repository: NssRepository) -> Result<()> {
 }
 
 #[allow(clippy::format_in_format_args)]
-fn go_back(repository: NssRepository, hash: &str) -> Result<()> {
+fn go_back(repository: &NssRepository, hash: &str) -> Result<()> {
     let object = repository.read_object(hash)?;
 
     let commit = match object {
         Object::Commit(commit) => commit,
-        _ => bail!("Not commit hash ({})", hex::encode(object.to_hash()))
+        _ => bail!("Not commit hash ({})", hex::encode(object.to_hash())),
     };
 
     println!(
@@ -56,7 +56,7 @@ fn go_back(repository: NssRepository, hash: &str) -> Result<()> {
 }
 
 #[allow(clippy::format_in_format_args)]
-fn go_back_option_s(repository: NssRepository, hash: &str) -> Result<()> {
+fn go_back_option_s(repository: &NssRepository, hash: &str) -> Result<()> {
     let object = repository.read_object(hash)?;
 
     let commit = match object {
@@ -76,7 +76,7 @@ fn go_back_option_s(repository: NssRepository, hash: &str) -> Result<()> {
     Ok(())
 }
 
-fn read_head(repository: NssRepository) -> Result<Option<String>> {
+fn read_head(repository: &NssRepository) -> Result<Option<String>> {
     let mut file = File::open(repository.head_path()).unwrap();
     let mut referece = String::new();
     file.read_to_string(&mut referece).unwrap();

@@ -1,19 +1,20 @@
 //! **Update-index command** Base command: `git update-index
-//! /// TODO: Documentation`
 
 // Std
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
 // External
 use anyhow::Result;
+use colored::*;
 
 // Internal
-use crate::struct_set::Index;
 use crate::repo::NssRepository;
+use crate::struct_set::Index;
 
-pub fn run(repository: NssRepository, file_path: &str) -> Result<()> {
+pub fn run(repository: &NssRepository, file_path: &str) -> Result<()> {
     let mut index = match repository.read_index() {
         Ok(index) => index,
         Err(e) => {
@@ -32,8 +33,8 @@ pub fn run(repository: NssRepository, file_path: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn run_all(repository: NssRepository) -> Result<()> {
-    let index = Index::new_all(&repository)?;
+pub fn run_all(repository: &NssRepository) -> Result<()> {
+    let index = Index::new_all(repository)?;
 
     let mut file = File::create(repository.index_path())?;
     file.write_all(&index.as_bytes())?;
@@ -42,19 +43,32 @@ pub fn run_all(repository: NssRepository) -> Result<()> {
     Ok(())
 }
 
-pub fn run_option_w(repository: NssRepository) -> Result<()> {
-    let mut all_paths = repository.get_all_paths_ignore(&repository.path());
+pub fn run_option_v(repository: &NssRepository) -> Result<()> {
+    let tracked_files = repository
+        .read_index()?
+        .filemetas
+        .iter()
+        .map(|f| PathBuf::from(&f.filename))
+        .collect::<Vec<PathBuf>>();
+    let mut all_paths = repository
+        .get_all_paths_ignore(&repository.path())
+        .iter()
+        .map(|p| p.strip_prefix(&repository.path()).unwrap().to_path_buf())
+        .collect::<Vec<PathBuf>>();
     all_paths.sort();
 
-    println!("[List of files to be tracked]");
-    for path in all_paths {
-        println!(
-            "{}",
-            path.strip_prefix(&repository.path())
-                .unwrap()
-                .to_str()
-                .unwrap()
-        )
+    println!("[List of files tracked]");
+    for path in tracked_files.clone() {
+        println!("{}", path.display())
+    }
+
+    let set1: HashSet<_> = tracked_files.iter().collect();
+    let set2: HashSet<_> = all_paths.iter().collect();
+    let no_tracked_files: Vec<_> = set2.difference(&set1).cloned().collect();
+
+    println!("{}", "\n[List of files to br tracked]".red());
+    for path in no_tracked_files {
+        println!("{}", path.display())
     }
 
     Ok(())

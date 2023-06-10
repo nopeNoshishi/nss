@@ -6,7 +6,7 @@
 use std::path::Path;
 
 // External
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 // Internal
 use crate::nss_io::file_system::*;
@@ -25,10 +25,13 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
     create_dir(repo_path.join(".nss").join("memo"))?;
 
     // Initial File
-    create_file_with_buffer(
+    match create_file_with_buffer(
         repo_path.join(".nss").join("repo"),
         repo_path.to_str().unwrap().as_bytes(),
-    )?;
+    ) {
+        Ok(..) => (),
+        Err(..) => bail!("Repository already existed!"),
+    };
     create_file_with_buffer(
         repo_path.join(".nss").join("HEAD"),
         b"bookmarker: bookmarks/local/voyage",
@@ -45,7 +48,10 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
     )?;
 
     let repo_name = repo_path.file_name().unwrap();
-    println!("Created repository! Repository name: {:?}", repo_name);
+    println!(
+        "Created repository! Repository name: {}",
+        repo_name.to_str().unwrap()
+    );
 
     Ok(())
 }
@@ -60,7 +66,7 @@ mod tests {
     fn test_run() {
         // Create a temporary directory for testing
         let temp_dir = testdir! {};
-        println!("Test Directory: {:?}", temp_dir);
+        println!("Test Directory: {}", temp_dir.display());
 
         // Run the function test
         assert!(run(&temp_dir).is_ok());

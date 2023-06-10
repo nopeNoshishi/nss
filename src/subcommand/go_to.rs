@@ -15,20 +15,20 @@ use anyhow::Context;
 use anyhow::{bail, Result};
 
 // Internal
-use crate::struct_set::{Index, Object, Tree};
 use crate::nss_io::file_system;
 use crate::repo::NssRepository;
+use crate::struct_set::{Index, Object, Tree};
 
 // TODO: when delete or create , use tempolary dir
-pub fn run(repository: NssRepository, target: &str) -> Result<()> {
+pub fn run(repository: &NssRepository, target: &str) -> Result<()> {
     // target needs to be commit hash
-    let tree = to_base_tree(&repository, target)?;
+    let tree = to_base_tree(repository, target)?;
 
     // clean working directory
-    delete_file(&repository)?;
+    delete_file(repository)?;
 
     // restoration by tree
-    match create_file(&repository, tree.clone(), repository.path()) {
+    match create_file(repository, tree.clone(), repository.path()) {
         Ok(_) => {
             // update index
             let index = Index::try_from(tree)?;
@@ -37,7 +37,7 @@ pub fn run(repository: NssRepository, target: &str) -> Result<()> {
             file.flush()?;
         }
         Err(e) => {
-            let head_hash = read_head(repository.clone())?.unwrap();
+            let head_hash = read_head(repository)?.unwrap();
             let commit = match repository.read_object(head_hash)? {
                 Object::Commit(c) => c,
                 _ => bail!("{} is not commit hash", target),
@@ -48,7 +48,7 @@ pub fn run(repository: NssRepository, target: &str) -> Result<()> {
                 _ => bail!("{} is not tree hash", target),
             };
 
-            create_file(&repository, tree, repository.path())?;
+            create_file(repository, tree, repository.path())?;
             bail!("{}\nCan't go to {}", e, target)
         }
     }
@@ -101,7 +101,7 @@ fn create_file(repository: &NssRepository, tree: Tree, prefix: PathBuf) -> Resul
     Ok(())
 }
 
-fn read_head(repository: NssRepository) -> Result<Option<String>> {
+fn read_head(repository: &NssRepository) -> Result<Option<String>> {
     let mut file = File::open(repository.head_path()).unwrap();
     let mut referece = String::new();
     file.read_to_string(&mut referece).unwrap();
@@ -121,7 +121,7 @@ fn read_head(repository: NssRepository) -> Result<Option<String>> {
     Ok(Some(prefix_path[1].to_owned()))
 }
 
-pub fn update_head(repository: NssRepository, target: &str) -> Result<()> {
+pub fn update_head(repository: &NssRepository, target: &str) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)

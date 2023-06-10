@@ -11,16 +11,16 @@ use anyhow::{bail, Result};
 use colored::*;
 
 // Internal
-use crate::struct_set::{Commit, Entry, Hashable, Index, Tree};
 use crate::nss_io::file_system;
 use crate::repo::NssRepository;
+use crate::struct_set::{Commit, Entry, Hashable, Index, Object, Tree};
 
-pub fn run(repository: NssRepository, massage: &str) -> Result<()> {
+pub fn run(repository: &NssRepository, massage: &str) -> Result<()> {
     // Create tree object from index
-    let hash = write_tree(repository.clone())?;
+    let hash = write_tree(repository)?;
 
     // Read head hash
-    let head_hash = match head_hash(repository.clone())? {
+    let head_hash = match head_hash(repository)? {
         Some(h) => h,
         _ => "None".to_owned(),
     };
@@ -43,7 +43,7 @@ pub fn run(repository: NssRepository, massage: &str) -> Result<()> {
     Ok(())
 }
 
-fn display_result(repository: NssRepository, old_hash: &str, new_hash: &str) -> Result<()> {
+fn display_result(repository: &NssRepository, old_hash: &str, new_hash: &str) -> Result<()> {
     match old_hash {
         "None" => {
             println!(
@@ -54,7 +54,7 @@ fn display_result(repository: NssRepository, old_hash: &str, new_hash: &str) -> 
                 &new_hash[0..7]
             );
 
-            let book_path = read_head(repository.clone())?;
+            let book_path = read_head(repository)?;
             let bookmarker = book_path.split('/').collect::<Vec<&str>>()[2];
             update_bookmark(repository, bookmarker, new_hash, None)?;
         }
@@ -67,7 +67,7 @@ fn display_result(repository: NssRepository, old_hash: &str, new_hash: &str) -> 
                 &new_hash[0..7]
             );
 
-            let book_path = read_head(repository.clone())?;
+            let book_path = read_head(repository)?;
             let bookmarker = book_path.split('/').collect::<Vec<&str>>()[2];
             update_bookmark(repository, bookmarker, new_hash, Some(old_hash))?;
         }
@@ -76,7 +76,7 @@ fn display_result(repository: NssRepository, old_hash: &str, new_hash: &str) -> 
     Ok(())
 }
 
-fn read_head(repository: NssRepository) -> Result<String> {
+fn read_head(repository: &NssRepository) -> Result<String> {
     let mut file = File::open(repository.head_path())?;
     let mut referece = String::new();
     file.read_to_string(&mut referece).unwrap();
@@ -86,8 +86,8 @@ fn read_head(repository: NssRepository) -> Result<String> {
     Ok(prefix_path[1].to_string())
 }
 
-fn head_hash(repository: NssRepository) -> Result<Option<String>> {
-    let head_item = read_head(repository.clone())?;
+fn head_hash(repository: &NssRepository) -> Result<Option<String>> {
+    let head_item = read_head(repository)?;
     if head_item.contains('/') {
         let bookmarker = head_item.split('/').collect::<Vec<&str>>()[2];
 
@@ -106,7 +106,7 @@ fn head_hash(repository: NssRepository) -> Result<Option<String>> {
 }
 
 fn update_bookmark(
-    repository: NssRepository,
+    repository: &NssRepository,
     bookmarker: &str,
     new_commit: &str,
     old_commit: Option<&str>,
@@ -145,7 +145,7 @@ fn update_bookmark(
     Ok(())
 }
 
-fn write_tree(repository: NssRepository) -> Result<String> {
+fn write_tree(repository: &NssRepository) -> Result<String> {
     let index = repository.read_index()?;
     let tree_dir = tree_map(index)?;
 
@@ -156,7 +156,8 @@ fn write_tree(repository: NssRepository) -> Result<String> {
 
         for path in m.1 {
             if path.is_file() {
-                let entry = Entry::new(path)?;
+                let object = Object::new(&path)?;
+                let entry = Entry::new(path, object)?;
                 entries.push(entry)
             } else {
                 let entry = dir_entry_map.get(&path).unwrap().to_owned();
