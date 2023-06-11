@@ -39,6 +39,24 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_config_username() {
+        let user = User::new("noshishi".to_string(), None);
+        let config = Config::new(user);
+        assert_eq!(config.username(), "noshishi".to_string());
+    }
+
+    #[test]
+    fn test_config_useremail() {
+        let user = User::new("noshishi".to_string(), None);
+        let config = Config::new(user);
+        assert_eq!(config.useremail(), Option::None);
+
+        let user = User::new("noshishi".to_string(), Some("noshishi@nope.com".to_string()));
+        let config = Config::new(user);
+        assert_eq!(config.useremail(), Some("noshishi@nope.com".to_string()));
+    }
+
+    #[test]
     fn test_config_serialize_to_toml() {
         // User has no email
         let user = User::new("noshishi".to_string(), None);
