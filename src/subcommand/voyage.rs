@@ -10,6 +10,7 @@ use anyhow::{bail, Result};
 
 // Internal
 use crate::nss_io::file_system::*;
+use crate::repo::{User, Config};
 
 /// Build the necessary repository directories.
 ///
@@ -25,6 +26,7 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
     create_dir(repo_path.join(".nss").join("memo"))?;
 
     // Initial File
+    // TODO: Consider what to do when some of the folders in the repository are missing.
     match create_file_with_buffer(
         repo_path.join(".nss").join("repo"),
         repo_path.to_str().unwrap().as_bytes(),
@@ -36,7 +38,9 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
         repo_path.join(".nss").join("HEAD"),
         b"bookmarker: bookmarks/local/voyage",
     )?;
-    create_file_with_buffer(repo_path.join(".nss").join("config"), b"remotes: []")?;
+
+    let config = Config::new(User::new(whoami::username(), None));
+    create_file_with_buffer(repo_path.join(".nss").join("config"), toml::to_string(&config)?.as_bytes())?;
     create_file_with_buffer(repo_path.join(".nss").join("INDEX"), b"")?;
     create_file_with_buffer(
         repo_path

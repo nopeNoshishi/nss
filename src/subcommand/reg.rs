@@ -25,12 +25,14 @@ pub fn run(repository: &NssRepository, massage: &str) -> Result<()> {
         _ => "None".to_owned(),
     };
 
+    let config = repository.read_config()?;
+
     // Build commit object
     let commit = Commit::new(
         hash,
         head_hash,
-        "nopeNoshishi".to_string(),
-        "nopeNoshishi@nope.noshishi".to_string(),
+        format!("{}\0 {}", config.username(), config.useremail().unwrap_or_default()),
+        format!("{}\0 {}", config.username(), config.useremail().unwrap_or_default()),
         massage.to_string(),
     )?;
 
@@ -247,7 +249,11 @@ mod tests {
     // use super::*;
 
     #[test]
-    fn test_run() {}
+    fn test_run() {
+        let a = format!("{}\0 {}", "test", "a");
+        let b: Vec<&str> = a.split("\0 ").collect();
+        println!("{:?}", b);
+    }
 
     #[test]
     fn test_read_head() {}

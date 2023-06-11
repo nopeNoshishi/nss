@@ -10,8 +10,9 @@ use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 
+use super::Config;
 use crate::nss_io::file_system;
-use crate::struct_set::{Hashable, Index, Object};
+use crate::struct_set::{Hashable, Index, IndexVesion1, Object};
 
 // Manager for repository absolute path
 #[derive(Debug, Clone)]
@@ -30,6 +31,10 @@ impl NssRepository {
 
     pub fn local_path(&self) -> PathBuf {
         self.root.clone().join(".nss")
+    }
+
+    pub fn temp_path<T: Into<String>>(&self, hash: T) -> PathBuf {
+        self.root.clone().join(".nss").join(hash.into())
     }
 
     pub fn objects_path<T: Into<String>>(&self, hash: T) -> PathBuf {
@@ -57,12 +62,37 @@ impl NssRepository {
         self.root.clone().join(".nss").join("config")
     }
 
+    pub fn write_config(&self, config: Config) -> Result<()> {
+        file_system::open_file_trucate(
+            self.config_path(), 
+            toml::to_string(&config)?.as_bytes()
+        )?;
+
+        Ok(())
+    }
+
+    pub fn read_config(&self) -> Result<Config> {
+        let mut file = File::open(self.config_path())?;
+        let mut content = String::new();
+        file.read_to_string(&mut content)?;
+
+        Ok(toml::from_str(&content)?)
+    }
+
     pub fn head_path(&self) -> PathBuf {
         self.root.clone().join(".nss").join("HEAD")
     }
 
     pub fn index_path(&self) -> PathBuf {
         self.root.clone().join(".nss").join("INDEX")
+    }
+
+    pub fn write_index(&self, index: Index) -> Result<()> {
+        let mut file = File::create(self.index_path())?;
+        file.write_all(&index.as_bytes())?;
+        file.flush()?;
+    
+        Ok(())
     }
 
     pub fn read_index(&self) -> Result<Index> {
