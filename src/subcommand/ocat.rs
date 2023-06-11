@@ -50,7 +50,7 @@ mod tests {
         fs::create_dir_all(&nss_objects_dir).unwrap();
         let nss_objects_dir = temp_dir.join(".nss").join("objects").join("c1");
         fs::create_dir_all(&nss_objects_dir).unwrap();
-        let nss_objects_dir = temp_dir.join(".nss").join("objects").join("24");
+        let nss_objects_dir = temp_dir.join(".nss").join("objects").join("a0");
         fs::create_dir_all(&nss_objects_dir).unwrap();
 
         // Create a temporary object for testing
@@ -82,10 +82,10 @@ mod tests {
         // test commit
         let test_object = test_object_root
             .join("commit")
-            .join("245ad8f1c06c1f7ff56b0d09e06fd734cf729170");
+            .join("a02b83cb54ba139e5c9d623a2fcf5424552946e0");
         fs::copy(
             test_object,
-            test_repo.objects_path("245ad8f1c06c1f7ff56b0d09e06fd734cf729170"),
+            test_repo.objects_path("a02b83cb54ba139e5c9d623a2fcf5424552946e0"),
         )
         .unwrap();
 
@@ -132,16 +132,17 @@ fn commit(message: &str) -> std::io::Result<()> {
         // Vertfiy commit object
         let commit_output = b"tree c192349d0ee530038e5d925fdd701652ca755ba8
 parent None
-author nopeNoshishi
-committer nopeNoshishi@nope.noshishi
+author noshishi\0
+committer noshishi\0
+date 1686487974
 
-Initial
+initial
 \n";
         let mut buf = Vec::<u8>::new();
         assert!(run_option_p(
             &mut buf,
             &test_repo,
-            "245ad8f1c06c1f7ff56b0d09e06fd734cf729170"
+            "a02b83cb54ba139e5c9d623a2fcf5424552946e0"
         )
         .is_ok());
         assert_eq!(buf, commit_output);
@@ -161,7 +162,7 @@ Initial
         fs::create_dir_all(&nss_objects_dir).unwrap();
         let nss_objects_dir = temp_dir.join(".nss").join("objects").join("c1");
         fs::create_dir_all(&nss_objects_dir).unwrap();
-        let nss_objects_dir = temp_dir.join(".nss").join("objects").join("24");
+        let nss_objects_dir = temp_dir.join(".nss").join("objects").join("a0");
         fs::create_dir_all(&nss_objects_dir).unwrap();
 
         // Create a temporary object for testing
@@ -193,10 +194,10 @@ Initial
         // test commit
         let test_object = test_object_root
             .join("commit")
-            .join("245ad8f1c06c1f7ff56b0d09e06fd734cf729170");
+            .join("a02b83cb54ba139e5c9d623a2fcf5424552946e0");
         fs::copy(
             test_object,
-            test_repo.objects_path("245ad8f1c06c1f7ff56b0d09e06fd734cf729170"),
+            test_repo.objects_path("a02b83cb54ba139e5c9d623a2fcf5424552946e0"),
         )
         .unwrap();
 
@@ -234,7 +235,7 @@ Initial
         assert!(run_option_t(
             &mut buf,
             &test_repo,
-            "245ad8f1c06c1f7ff56b0d09e06fd734cf729170"
+            "a02b83cb54ba139e5c9d623a2fcf5424552946e0"
         )
         .is_ok());
         assert_eq!(buf, "commit\n".as_bytes());
