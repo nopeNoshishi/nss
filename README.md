@@ -3,11 +3,12 @@
 <img src="https://github.com/nopeNoshishi/nss/blob/main/picture/logos.png" width="200">
 </p>
 
-<p align="center">
-[![Test](https://github.com/nopeNoshishi/nss/actions/workflows/rust.yml/badge.svg)](https://github.com/nopeNoshishi/nss/actions/workflows/rust.yml)
-[![Codecov](https://codecov.io/gh/nopeNoshishi/nss/branch/main/graph/badge.svg?token=TVQHRPZ1SN)](https://codecov.io/gh/nopeNoshishi/nss)
-<img src="https://img.shields.io/badge/version-0.1.6-green?style=flat-square">
-</p>
+
+<h1 align="center">
+
+[![Test](https://github.com/nopeNoshishi/nss/actions/workflows/rust.yml/badge.svg)](https://github.com/nopeNoshishi/nss/actions/workflows/rust.yml) [![Codecov](https://codecov.io/gh/nopeNoshishi/nss/branch/main/graph/badge.svg?token=TVQHRPZ1SN)](https://codecov.io/gh/nopeNoshishi/nss) <img src="https://img.shields.io/badge/version-0.1.6-green?style=flat-square">
+
+</h1>
 
 # nss (noshishi)
 Original Version Management System based on Git.
