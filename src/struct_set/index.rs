@@ -4,21 +4,22 @@ use std::path::{Path, PathBuf};
 // External
 use anyhow::{bail, Result};
 use byteorder::{BigEndian, ByteOrder};
+use serde::{Deserialize, Serialize};
 
 // Internal
 use super::{FileMeta, Object, Tree};
 use crate::nss_io::file_system;
 use crate::repo::repository::NssRepository;
 
-/// TODO: Documentation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Index {
+    pub version: u32,
     pub filemetas: Vec<FileMeta>,
 }
 
 impl Index {
     pub fn empty() -> Self {
-        Self { filemetas: vec![] }
+        Self { version: 1, filemetas: vec![] }
     }
 
     pub fn new_all(repository: &NssRepository) -> Result<Self> {
@@ -30,30 +31,10 @@ impl Index {
             .map(|path| FileMeta::new(path).unwrap())
             .collect::<Vec<_>>();
 
-        Ok(Self { filemetas })
+        Ok(Self { version: 1, filemetas })
     }
 
-    pub fn from_rawindex(buf: Vec<u8>) -> Result<Self> {
-        if buf == Vec::<u8>::new() {
-            bail!("First index");
-        }
 
-        let entry_num = BigEndian::read_u32(&buf[8..12]) as usize;
-        let mut start_size = 12_usize;
-        let mut filemetas: Vec<FileMeta> = vec![];
-        for _ in 0..entry_num {
-            let name_size =
-                BigEndian::read_u16(&buf[(start_size + 60)..(start_size + 62)]) as usize;
-            filemetas.push(FileMeta::from_rawindex(
-                &buf[(start_size)..(start_size + 62 + name_size)],
-            ));
-
-            let padding_size = padding(name_size);
-            start_size = start_size + 62 + name_size + padding_size;
-        }
-
-        Ok(Self { filemetas })
-    }
 
     pub fn add<P>(&mut self, repo_path: P, file_path: P) -> Result<()>
     where
@@ -75,29 +56,6 @@ impl Index {
         self.filemetas = new_filemetas;
 
         Ok(())
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        let index_header = b"DIRC";
-        let index_version = 1_u32;
-        let entry_num = self.filemetas.len() as u32;
-        let header = [
-            *index_header,
-            index_version.to_be_bytes(),
-            entry_num.to_be_bytes(),
-        ]
-        .concat();
-
-        let mut filemetas_vec: Vec<Vec<u8>> = vec![];
-        for filemeta in &self.filemetas {
-            let len = 62 + filemeta.filename_size as usize;
-            let padding = (0..(8 - len % 8)).map(|_| b'\0').collect::<Vec<u8>>();
-            let filemeta_vec = [filemeta.as_bytes(), padding].concat();
-
-            filemetas_vec.push(filemeta_vec)
-        }
-
-        [header, filemetas_vec.concat()].concat()
     }
 }
 
@@ -161,6 +119,82 @@ fn to_tree(repository: NssRepository, hash: &str) -> Result<Tree, anyhow::Error>
         _ => bail!("{} is not tree hash", hash),
     }
 }
+
+pub trait IndexVesion1 {
+    fn as_bytes(&self) -> Vec<u8>;
+    fn from_rawindex(buf: Vec<u8>) -> Result<Self>
+        where Self: Sized;
+}
+
+impl IndexVesion1 for Index {
+    fn as_bytes(&self) -> Vec<u8> {
+        let index_header = b"DIRC";
+        let index_version = self.version;
+        let entry_num = self.filemetas.len() as u32;
+        let header = [
+            *index_header,
+            index_version.to_be_bytes(),
+            entry_num.to_be_bytes(),
+        ]
+        .concat();
+
+        let mut filemetas_vec: Vec<Vec<u8>> = vec![];
+        for filemeta in &self.filemetas {
+            let len = 62 + filemeta.filename_size as usize;
+            let padding = (0..(8 - len % 8)).map(|_| b'\0').collect::<Vec<u8>>();
+            let filemeta_vec = [filemeta.as_bytes(), padding].concat();
+
+            filemetas_vec.push(filemeta_vec)
+        }
+
+        [header, filemetas_vec.concat()].concat()
+    }
+
+    fn from_rawindex(buf: Vec<u8>) -> Result<Self> {
+        if buf == Vec::<u8>::new() {
+            bail!("First index");
+        }
+
+        let entry_num = BigEndian::read_u32(&buf[8..12]) as usize;
+        let mut start_size = 12_usize;
+        let mut filemetas: Vec<FileMeta> = vec![];
+        for _ in 0..entry_num {
+            let name_size =
+                BigEndian::read_u16(&buf[(start_size + 60)..(start_size + 62)]) as usize;
+            filemetas.push(FileMeta::from_rawindex(
+                &buf[(start_size)..(start_size + 62 + name_size)],
+            ));
+
+            let padding_size = padding(name_size);
+            start_size = start_size + 62 + name_size + padding_size;
+        }
+
+        Ok(Self { version: 1, filemetas })
+    }
+}
+
+
+// TEST FEATURE！
+pub trait IndexVesion2 {
+    fn as_bytes(&self) -> bincode::Result<Vec<u8>>;
+    fn from_rawindex(buf: Vec<u8>) -> bincode::Result<Self>
+        where Self: Sized;
+}
+
+impl IndexVesion2 for Index {
+    fn as_bytes(&self) -> bincode::Result<Vec<u8>>
+    where
+        Self: Serialize
+    {
+        bincode::serialize(self)
+    }
+
+    fn from_rawindex(buf: Vec<u8>) -> bincode::Result<Self> {
+
+        bincode::deserialize(&buf)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

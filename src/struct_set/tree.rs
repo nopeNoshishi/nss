@@ -375,23 +375,6 @@ mod tests {
         fs::remove_dir_all(temp_dir).unwrap();
     }
 
-    // #[test]
-    // fn test_commit_new() {
-    //     let content = fs::read_to_string(".nssignore").unwrap();
-    //     println!("{:?}", content);
-    //     let lines = content.lines();
-
-    //     let repo_path = PathBuf::from("User/noshishi/work");
-
-    //     for l in lines
-    //         .into_iter()
-    //         .filter(|line| !line.contains('#') || line.is_empty())
-    //         .map(|line| repo_path.join(line))
-    //     {
-    //         println!("{:?}", l);
-    //     }
-    // }
-
     #[test]
     fn test_commit_from_rawobject() {
         let (a, b) = b"\\s\x00\x8b\xa7Us\xc2\rj\x8anU}\x05V\xd4\xa8A3".split_at(20);

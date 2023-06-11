@@ -9,6 +9,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::path::PathBuf;
+// use std::collections::HashMap;
 
 use anyhow::Context;
 // External
@@ -17,15 +18,16 @@ use anyhow::{bail, Result};
 // Internal
 use crate::nss_io::file_system;
 use crate::repo::NssRepository;
-use crate::struct_set::{Index, Object, Tree};
+use crate::struct_set::{Index, IndexVesion1, Object, Tree};
 
 // TODO: when delete or create , use tempolary dir
 pub fn run(repository: &NssRepository, target: &str) -> Result<()> {
     // target needs to be commit hash
     let tree = to_base_tree(repository, target)?;
+    let index = Index::try_from(tree.clone())?;
 
     // clean working directory
-    delete_file(repository)?;
+    delete_file(&repository, &index)?;
 
     // restoration by tree
     match create_file(repository, tree.clone(), repository.path()) {
@@ -71,15 +73,78 @@ fn to_base_tree(repository: &NssRepository, target: &str) -> Result<Tree, anyhow
     }
 }
 
-fn delete_file(repository: &NssRepository) -> Result<()> {
-    let index = repository.read_index()?;
+fn delete_file(repository: &NssRepository, index: &Index) -> Result<()> {
 
-    for path in index.filemetas {
-        fs::remove_file(path.filename)?
+    for path in index.filemetas.iter() {
+        match fs::remove_file(repository.path().join(PathBuf::from(&path.filename))) {
+            Ok(..) => (),
+            Err(e) => match e.kind() {
+                std::io::ErrorKind::NotFound => (),
+                _ => bail!("Unexpected error occurred while deleting the file！")
+            }
+        }
     }
 
     Ok(())
 }
+
+// fn create_ready_file(repository: &NssRepository, index: &Index, tree_hash: String) -> Result<()> {
+
+//     // Create temp dir
+//     let temp_dir = repository.temp_path(tree_hash);
+//     file_system::create_dir(&temp_dir)?;
+
+//     let files = index.filemetas.iter()
+//         .map(|meta| ( hex::encode(&meta.hash), PathBuf::from(&meta.filename)) ).collect::<HashMap<_, _>>();
+
+//     for file in files {
+//         match file.1.parent() {
+//             Some(p) => file_system::create_dir(temp_dir.join(p))?,
+//             None => ()
+//         }
+
+//         let blob = match repository.read_object(file.0)? {
+//             Object::Blob(b) => b,
+//             _ => bail!("Tree object exists in index!")
+//         };
+
+//         let mut file = OpenOptions::new()
+//             .write(true)
+//             .create_new(true)
+//             .open(temp_dir.join(file.1))?;
+
+//         file.write_all(&blob.content)?;
+//     }
+
+//     Ok(())
+// }
+
+// fn ready_file(repository: &NssRepository, index: &Index) -> Result<()> {
+
+//     let files = index.filemetas.iter()
+//         .map(|meta| ( hex::encode(&meta.hash), PathBuf::from(&meta.filename)) ).collect::<HashMap<_, _>>();
+
+//     for file in files {
+//         match file.1.parent() {
+//             Some(p) => file_system::create_dir(repository.path().join(p))?,
+//             None => ()
+//         }
+
+//         let blob = match repository.read_object(file.0)? {
+//             Object::Blob(b) => b,
+//             _ => bail!("Tree object exists in index!")
+//         };
+
+//         let mut file = OpenOptions::new()
+//             .write(true)
+//             .create_new(true)
+//             .open(repository.path().join(file.1))?;
+
+//         file.write_all(&blob.content)?;
+//     }
+
+//     Ok(())
+// }
 
 fn create_file(repository: &NssRepository, tree: Tree, prefix: PathBuf) -> Result<()> {
     for entry in tree.entries {

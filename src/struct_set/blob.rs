@@ -15,6 +15,7 @@ use super::Hashable;
 /// This struct represents a file object.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Blob {
+    #[serde(with = "serde_bytes")]
     pub content: Vec<u8>,
 }
 

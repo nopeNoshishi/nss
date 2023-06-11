@@ -10,6 +10,17 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Result};
 use dirs::home_dir;
 
+pub fn open_file_trucate<P: AsRef<Path>>(file_path: P, buffer: &[u8]) -> std::io::Result<()> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(file_path)?;
+
+    file.write_all(buffer)?;
+
+    Ok(())
+}
+
 pub fn create_file_with_buffer<P: AsRef<Path>>(file_path: P, buffer: &[u8]) -> std::io::Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
