@@ -1,5 +1,9 @@
+// External
 use anyhow::Result;
+use chrono::prelude::{DateTime, Utc};
+use chrono::TimeZone;
 
+// Internal
 use super::object::Hashable;
 
 /// **Commit Struct**
@@ -11,6 +15,7 @@ pub struct Commit {
     pub parent: String,
     pub author: String,
     pub committer: String,
+    pub date: DateTime<Utc>,
     pub message: String,
 }
 
@@ -30,6 +35,7 @@ impl Commit {
             parent: parent.into(),
             author: author.into(),
             committer: committer.into(),
+            date: Utc::now(),
             message: message.into(),
         })
     }
@@ -41,7 +47,7 @@ impl Commit {
             .map(|x| String::from_utf8(x.to_vec()).unwrap())
             .collect::<Vec<String>>();
 
-        // "tree tree_hash"
+        // TODO: Refactor！
         let mut iter = all_line[0].split_whitespace();
         iter.next();
         let tree_hash = iter.next().unwrap().to_string();
@@ -58,13 +64,18 @@ impl Commit {
         iter.next();
         let committer = iter.next().unwrap().to_string();
 
-        let message = all_line[4].clone();
+        let mut iter = all_line[4].split_whitespace();
+        iter.next();
+        let date = iter.next().unwrap().to_string();
+
+        let message = all_line[5].clone();
 
         Ok(Self {
             tree_hash,
             parent,
             author,
             committer,
+            date: Utc.timestamp_opt(date.parse::<i64>()?, 0).unwrap(),
             message,
         })
     }
@@ -79,11 +90,12 @@ impl std::fmt::Display for Commit {
         };
         let author = format!("author {}", self.author);
         let committer = format!("committer {}", self.committer);
+        let date = format!("date {}", self.date.timestamp());
 
         write!(
             f,
-            "{}\n{}{}\n{}\n\n{}\n",
-            tree, parent, author, committer, self.message
+            "{}\n{}{}\n{}\n{}\n\n{}\n",
+            tree, parent, author, committer, date, self.message
         )
     }
 }
@@ -97,9 +109,10 @@ impl Hashable for Commit {
         };
         let author = format!("author {}", self.author);
         let committer = format!("committer {}", self.committer);
+        let date = format!("date {}", self.date.timestamp());
         let content = format!(
-            "{}\n{}{}\n{}\n\n{}\n",
-            tree_hash, parent, author, committer, self.message
+            "{}\n{}{}\n{}\n{}\n\n{}\n",
+            tree_hash, parent, author, committer, date, self.message
         );
         let store = format!("commit {}\0{}", content.len(), content);
 

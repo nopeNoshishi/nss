@@ -4,6 +4,8 @@ use std::io::prelude::*;
 
 // External
 use anyhow::{bail, Result};
+use chrono::prelude::{Datelike, Local};
+use chrono::{Month, TimeZone};
 use colored::*;
 
 // Internal
@@ -41,12 +43,21 @@ fn go_back(repository: &NssRepository, hash: &str) -> Result<()> {
         _ => bail!("Not commit hash ({})", hex::encode(object.to_hash())),
     };
 
-    println!(
-        "{}\n{}\n\n\t{}\n",
-        format!("commit: {}", hash).yellow(),
-        format!("Author: {}", commit.author),
-        format!("   {}", commit.message)
+    let hash = format!("Commit: {}", hash).yellow();
+    let branch = format!("({}{})", "HEAD -> ".bright_cyan().bold(), "voyage".bright_green().bold());
+
+    let author = format!("Author: {}", commit.author);
+    let timestamp = Local.timestamp_opt(commit.date.timestamp(), 0).unwrap();
+    let date = format!(
+        "Date:   {} {:.3} {}",
+        timestamp.weekday(),
+        Month::try_from(timestamp.month() as u8).unwrap().name(),
+        timestamp.format("%d %H:%M:%S %Y %z")
     );
+    let message = format!("    {}", commit.message);
+
+    // Output
+    println!("{} {}\n{}\n{}\n\n{}\n", hash, branch, author, date, message);
 
     if commit.parent != *"None" {
         go_back(repository, &commit.parent)?
