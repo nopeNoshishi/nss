@@ -18,29 +18,32 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        path: nss
+        path: main
+
     - name: Checkout nss core
       uses: actions/checkout@v3
       with:
         repository: rust-lang/rust
         path: nss_core
 
-    - uses: actions/checkout@v3
     - name: Build
+      working-directory: main
       run: cd nss && cargo build --release
     
-    # - uses: dtolnay/rust-toolchain@stable
-    #   with:
-    #     components: llvm-tools-preview
-    # - uses: taiki-e/install-action@cargo-llvm-cov
-    # - uses: taiki-e/install-action@nextest
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: llvm-tools-preview
+    - uses: taiki-e/install-action@cargo-llvm-cov
+    - uses: taiki-e/install-action@nextest
 
-    # - name: Collect coverage data
-    #   run: cargo llvm-cov nextest --lcov --output-path lcov.info
+    - name: Collect coverage data
+      working-directory: main
+      run: cargo llvm-cov nextest --lcov --output-path lcov.info
 
-    # - name: Upload coverage to Codecov
-    #   uses: codecov/codecov-action@v3
-    #   with:
-    #     token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-    #     files: lcov.info
-    #     fail_ci_if_error: true
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      working-directory: main
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+        files: lcov.info
+        fail_ci_if_error: true
