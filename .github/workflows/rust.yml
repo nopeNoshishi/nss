@@ -25,9 +25,9 @@ jobs:
         repository: rust-lang/rust
         path: nss_core
 
-    # - uses: actions/checkout@v3
-    # - name: Build
-    #   run: cd nss && cargo build --release
+    - uses: actions/checkout@v3
+    - name: Build
+      run: cd nss && cargo build --release
     
     # - uses: dtolnay/rust-toolchain@stable
     #   with:
