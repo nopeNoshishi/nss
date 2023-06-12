@@ -9,8 +9,8 @@ use chrono::{Month, TimeZone};
 use colored::*;
 
 // Internal
-use crate::repo::NssRepository;
-use crate::struct_set::{Hashable, Object};
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::{Hashable, Object};
 
 pub fn run(repository: &NssRepository) -> Result<()> {
     let head_hash = match read_head(repository)? {
@@ -44,7 +44,11 @@ fn go_back(repository: &NssRepository, hash: &str) -> Result<()> {
     };
 
     let hash = format!("Commit: {}", hash).yellow();
-    let branch = format!("({}{})", "HEAD -> ".bright_cyan().bold(), "voyage".bright_green().bold());
+    let branch = format!(
+        "({}{})",
+        "HEAD -> ".bright_cyan().bold(),
+        "voyage".bright_green().bold()
+    );
 
     let author = format!("Author: {}", commit.author);
     let timestamp = Local.timestamp_opt(commit.date.timestamp(), 0).unwrap();

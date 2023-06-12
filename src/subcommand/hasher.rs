@@ -10,8 +10,8 @@ use std::path::Path;
 use anyhow::Result;
 
 // Internal
-use crate::repo::NssRepository;
-use crate::struct_set::{Hashable, Object};
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::{Hashable, Object};
 
 /// Calculate the hash value of the given file and output this.
 #[allow(unused_must_use)]

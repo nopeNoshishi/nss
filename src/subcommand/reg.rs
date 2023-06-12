@@ -11,9 +11,9 @@ use anyhow::{bail, Result};
 use colored::*;
 
 // Internal
-use crate::nss_io::file_system;
-use crate::repo::NssRepository;
-use crate::struct_set::{Commit, Entry, Hashable, Index, Object, Tree};
+use nss_core::nss_io::file_system;
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::{Commit, Entry, Hashable, Index, Object, Tree};
 
 pub fn run(repository: &NssRepository, massage: &str) -> Result<()> {
     // Create tree object from index
@@ -31,8 +31,16 @@ pub fn run(repository: &NssRepository, massage: &str) -> Result<()> {
     let commit = Commit::new(
         hash,
         head_hash,
-        format!("{}\0 {}", config.username(), config.useremail().unwrap_or_default()),
-        format!("{}\0 {}", config.username(), config.useremail().unwrap_or_default()),
+        format!(
+            "{}\0 {}",
+            config.username(),
+            config.useremail().unwrap_or_default()
+        ),
+        format!(
+            "{}\0 {}",
+            config.username(),
+            config.useremail().unwrap_or_default()
+        ),
         massage.to_string(),
     )?;
 

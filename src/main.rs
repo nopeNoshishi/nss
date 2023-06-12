@@ -6,16 +6,14 @@ use std::path::PathBuf;
 use anyhow::{bail, Result};
 
 // Internal
-pub mod cli;
-pub mod nss_io;
-pub mod repo;
-pub mod struct_set;
-pub mod subcommand;
+mod cli;
+mod subcommand;
 
 use cli::*;
-use nss_io::file_system;
-use repo::NssRepository;
 use subcommand::*;
+use nss_core::nss_io::file_system;
+use nss_core::repo::repository::NssRepository;
+
 
 /// Parse argument and run commnad  
 fn main() -> Result<()> {

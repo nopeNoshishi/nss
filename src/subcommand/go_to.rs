@@ -16,9 +16,9 @@ use anyhow::Context;
 use anyhow::{bail, Result};
 
 // Internal
-use crate::nss_io::file_system;
-use crate::repo::NssRepository;
-use crate::struct_set::{Index, IndexVesion1, Object, Tree};
+use nss_core::nss_io::file_system;
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::{Index, IndexVesion1, Object, Tree};
 
 // TODO: when delete or create , use tempolary dir
 pub fn run(repository: &NssRepository, target: &str) -> Result<()> {
@@ -27,7 +27,7 @@ pub fn run(repository: &NssRepository, target: &str) -> Result<()> {
     let index = Index::try_from(tree.clone())?;
 
     // clean working directory
-    delete_file(&repository, &index)?;
+    delete_file(repository, &index)?;
 
     // restoration by tree
     match create_file(repository, tree.clone(), repository.path()) {
@@ -74,14 +74,13 @@ fn to_base_tree(repository: &NssRepository, target: &str) -> Result<Tree, anyhow
 }
 
 fn delete_file(repository: &NssRepository, index: &Index) -> Result<()> {
-
     for path in index.filemetas.iter() {
         match fs::remove_file(repository.path().join(PathBuf::from(&path.filename))) {
             Ok(..) => (),
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => (),
-                _ => bail!("Unexpected error occurred while deleting the file！")
-            }
+                _ => bail!("Unexpected error occurred while deleting the file！"),
+            },
         }
     }
 

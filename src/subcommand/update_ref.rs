@@ -10,7 +10,7 @@ use std::io::prelude::*;
 use anyhow::{bail, Result};
 
 // Internal
-use crate::repo::NssRepository;
+use nss_core::repository::NssRepository;
 
 pub fn run(repository: &NssRepository, new_commit: &str) -> Result<()> {
     let object = repository.read_object(new_commit)?;
@@ -28,6 +28,7 @@ pub fn run(repository: &NssRepository, new_commit: &str) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn run_option_b(
     repository: &NssRepository,
     bookmarker: &str,

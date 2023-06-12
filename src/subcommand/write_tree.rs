@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use anyhow::Result;
 
 // Internal
-use crate::repo::NssRepository;
-use crate::struct_set::{Entry, Hashable, Index, Object, Tree};
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::{Entry, Hashable, Index, Object, Tree};
 
 pub fn run(repository: &NssRepository) -> Result<()> {
     let index = repository.read_index()?;

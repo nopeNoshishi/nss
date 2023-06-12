@@ -9,8 +9,8 @@ use std::path::Path;
 use anyhow::{bail, Result};
 
 // Internal
-use crate::nss_io::file_system::*;
-use crate::repo::{User, Config};
+use nss_core::nss_io::file_system::*;
+use nss_core::config::{Config, User};
 
 /// Build the necessary repository directories.
 ///
@@ -40,7 +40,10 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
     )?;
 
     let config = Config::new(User::new(whoami::username(), None));
-    create_file_with_buffer(repo_path.join(".nss").join("config"), toml::to_string(&config)?.as_bytes())?;
+    create_file_with_buffer(
+        repo_path.join(".nss").join("config"),
+        toml::to_string(&config)?.as_bytes(),
+    )?;
     create_file_with_buffer(repo_path.join(".nss").join("INDEX"), b"")?;
     create_file_with_buffer(
         repo_path

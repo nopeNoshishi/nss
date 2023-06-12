@@ -10,7 +10,7 @@ use std::io::Write;
 use anyhow::Result;
 
 // Internal
-use crate::repo::NssRepository;
+use nss_core::repository::NssRepository;
 
 /// Register the object into object database (repository)
 /// and Display on standart-output.

@@ -4,7 +4,7 @@
 use anyhow::Result;
 
 // Internal
-use crate::repo::NssRepository;
+use nss_core::repository::NssRepository;
 
 pub fn run(repository: &NssRepository) -> Result<()> {
     let index = repository.read_index()?;

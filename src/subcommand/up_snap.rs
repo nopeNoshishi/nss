@@ -11,8 +11,8 @@ use anyhow::Result;
 use colored::*;
 
 // Internal
-use crate::repo::NssRepository;
-use crate::struct_set::{Index, IndexVesion1};
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::{Index, IndexVesion1};
 
 pub fn run(repository: &NssRepository, file_path: &str) -> Result<()> {
     let mut index = match repository.read_index() {

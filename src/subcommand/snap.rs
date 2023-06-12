@@ -5,8 +5,8 @@ use anyhow::Result;
 
 // Internel
 use super::up_snap;
-use crate::repo::NssRepository;
-use crate::struct_set::Blob;
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::Blob;
 
 pub fn shot(repository: &NssRepository, file_path: &str) -> Result<()> {
     let blob = Blob::new(file_path)?;

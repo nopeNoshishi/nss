@@ -13,7 +13,7 @@ use std::io::prelude::*;
 use anyhow::{bail, Context, Result};
 
 // Internal
-use crate::repo::NssRepository;
+use nss_core::repository::NssRepository;
 
 /// Create a new bookmarker to argument commit hash.
 ///
