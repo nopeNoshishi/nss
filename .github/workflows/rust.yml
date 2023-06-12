@@ -15,8 +15,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        path: main
+
+    - name: Checkout nss core
+      uses: actions/checkout@v3
+      with:
+        repository: nopeNoshishi/nss_core
+        path: nss_core
+
     - name: Build
+      working-directory: main
       run: cargo build --release
     
     - uses: dtolnay/rust-toolchain@stable
@@ -26,4 +37,12 @@ jobs:
     - uses: taiki-e/install-action@nextest
 
     - name: Collect coverage data
-      run: cargo llvm-cov nextest
+      working-directory: main
+      run: cargo llvm-cov nextest --lcov --output-path lcov.info
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+        files: lcov.info
+        fail_ci_if_error: true

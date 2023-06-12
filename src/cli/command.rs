@@ -119,7 +119,7 @@ fn look_command() -> clap::Command {
 }
 
 fn index_command() -> clap::Command {
-    Command::new("up-sanp")
+    Command::new("up-snap")
         .about("Register file contents in the working diretory to the index")
         .arg(
             Arg::new("working")

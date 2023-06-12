@@ -11,39 +11,49 @@ use anyhow::{bail, Result};
 use colored::*;
 
 // Internal
-use crate::struct_set::{Commit, Entry, Hashable, Index, Tree};
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use nss_core::nss_io::file_system;
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::{Commit, Entry, Hashable, Index, Object, Tree};
 
-pub fn run(repository: NssRepository, massage: &str) -> Result<()> {
+pub fn run(repository: &NssRepository, massage: &str) -> Result<()> {
     // Create tree object from index
-    let hash = write_tree(repository.clone())?;
+    let hash = write_tree(repository)?;
 
     // Read head hash
-    let head_hash = match head_hash(repository.clone())? {
+    let head_hash = match head_hash(repository)? {
         Some(h) => h,
         _ => "None".to_owned(),
     };
+
+    let config = repository.read_config()?;
 
     // Build commit object
     let commit = Commit::new(
         hash,
         head_hash,
-        "nopeNoshishi".to_string(),
-        "nopeNoshishi@nope.noshishi".to_string(),
+        format!(
+            "{}\0 {}",
+            config.username(),
+            config.useremail().unwrap_or_default()
+        ),
+        format!(
+            "{}\0 {}",
+            config.username(),
+            config.useremail().unwrap_or_default()
+        ),
         massage.to_string(),
     )?;
 
     // Write commit object
     let hash = hex::encode(commit.to_hash());
-    file_system::write_object(repository.objects_path(&hash), commit.clone())?;
+    repository.write_object(commit.clone())?;
 
     display_result(repository, commit.parent.as_str(), hash.as_str())?;
 
     Ok(())
 }
 
-fn display_result(repository: NssRepository, old_hash: &str, new_hash: &str) -> Result<()> {
+fn display_result(repository: &NssRepository, old_hash: &str, new_hash: &str) -> Result<()> {
     match old_hash {
         "None" => {
             println!(
@@ -54,7 +64,7 @@ fn display_result(repository: NssRepository, old_hash: &str, new_hash: &str) -> 
                 &new_hash[0..7]
             );
 
-            let book_path = read_head(repository.clone())?;
+            let book_path = read_head(repository)?;
             let bookmarker = book_path.split('/').collect::<Vec<&str>>()[2];
             update_bookmark(repository, bookmarker, new_hash, None)?;
         }
@@ -67,7 +77,7 @@ fn display_result(repository: NssRepository, old_hash: &str, new_hash: &str) -> 
                 &new_hash[0..7]
             );
 
-            let book_path = read_head(repository.clone())?;
+            let book_path = read_head(repository)?;
             let bookmarker = book_path.split('/').collect::<Vec<&str>>()[2];
             update_bookmark(repository, bookmarker, new_hash, Some(old_hash))?;
         }
@@ -76,7 +86,7 @@ fn display_result(repository: NssRepository, old_hash: &str, new_hash: &str) -> 
     Ok(())
 }
 
-fn read_head(repository: NssRepository) -> Result<String> {
+fn read_head(repository: &NssRepository) -> Result<String> {
     let mut file = File::open(repository.head_path())?;
     let mut referece = String::new();
     file.read_to_string(&mut referece).unwrap();
@@ -86,8 +96,8 @@ fn read_head(repository: NssRepository) -> Result<String> {
     Ok(prefix_path[1].to_string())
 }
 
-fn head_hash(repository: NssRepository) -> Result<Option<String>> {
-    let head_item = read_head(repository.clone())?;
+fn head_hash(repository: &NssRepository) -> Result<Option<String>> {
+    let head_item = read_head(repository)?;
     if head_item.contains('/') {
         let bookmarker = head_item.split('/').collect::<Vec<&str>>()[2];
 
@@ -106,13 +116,13 @@ fn head_hash(repository: NssRepository) -> Result<Option<String>> {
 }
 
 fn update_bookmark(
-    repository: NssRepository,
+    repository: &NssRepository,
     bookmarker: &str,
     new_commit: &str,
     old_commit: Option<&str>,
 ) -> Result<()> {
-    let raw_content = file_system::read_object(repository.path(), new_commit)?;
-    if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
+    let object = repository.read_object(new_commit)?;
+    if object.as_str() == "commit" {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -145,8 +155,8 @@ fn update_bookmark(
     Ok(())
 }
 
-fn write_tree(repository: NssRepository) -> Result<String> {
-    let index = Index::from_rawindex()?;
+fn write_tree(repository: &NssRepository) -> Result<String> {
+    let index = repository.read_index()?;
     let tree_dir = tree_map(index)?;
 
     let mut repo_tree_hash = String::new();
@@ -156,7 +166,8 @@ fn write_tree(repository: NssRepository) -> Result<String> {
 
         for path in m.1 {
             if path.is_file() {
-                let entry = Entry::new(path)?;
+                let object = Object::new(&path)?;
+                let entry = Entry::new(path, object)?;
                 entries.push(entry)
             } else {
                 let entry = dir_entry_map.get(&path).unwrap().to_owned();
@@ -169,9 +180,9 @@ fn write_tree(repository: NssRepository) -> Result<String> {
 
         let tree = Tree::from_entries(entries);
         let hash = hex::encode(tree.to_hash());
-        file_system::write_object(repository.objects_path(&hash), tree)?;
+        repository.write_object(tree)?;
 
-        if m.0 == file_system::exists_repo::<PathBuf>(None)? {
+        if m.0 == repository.path() {
             repo_tree_hash = hash
         }
     }
@@ -246,7 +257,11 @@ mod tests {
     // use super::*;
 
     #[test]
-    fn test_run() {}
+    fn test_run() {
+        let a = format!("{}\0 {}", "test", "a");
+        let b: Vec<&str> = a.split("\0 ").collect();
+        println!("{:?}", b);
+    }
 
     #[test]
     fn test_read_head() {}

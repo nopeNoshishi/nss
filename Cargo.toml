@@ -18,15 +18,15 @@ github = { repository = "nopeNoshishi/nss", workflow = "Rust" }
 
 [dependencies]
 anyhow = "1"
-byteorder = "1.4.3"
 clap = "4.0.32"
 colored = "2"
-dirs = "4.0.0"
+chrono = "0.4.6"
 flate2 = "1.0.25"
 sha-1 = "0.9.1"
 hex = "0.4.2"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+whoami = "1.4.0"
+toml = "0.7.4"
+nss_core = { version = "0.1.0", path = "../nss_core" }
 
 [dev-dependencies]
 testdir = "0.7.3"

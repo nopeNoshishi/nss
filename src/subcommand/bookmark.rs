@@ -13,18 +13,17 @@ use std::io::prelude::*;
 use anyhow::{bail, Context, Result};
 
 // Internal
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use nss_core::repository::NssRepository;
 
 /// Create a new bookmarker to argument commit hash.
 ///
 /// **Note:** If you do not specify a hash, it refers to the
 /// value pointed to by HEAD.
-pub fn run(repository: NssRepository, book_name: &str, hash: Option<&String>) -> Result<()> {
+pub fn run(repository: &NssRepository, book_name: &str, hash: Option<&String>) -> Result<()> {
     match hash {
         Some(v) => {
-            let raw_content = file_system::read_object(repository.path(), v)?;
-            if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
+            let object = repository.read_object(v)?;
+            if object.as_str() == "commit" {
                 let mut file = OpenOptions::new()
                     .create_new(true)
                     .write(true)
@@ -49,15 +48,15 @@ pub fn run(repository: NssRepository, book_name: &str, hash: Option<&String>) ->
 ///
 /// **Note:** If you do not specify a hash, it refers to the
 /// value pointed to by HEAD.
-pub fn run_option_r(repository: NssRepository, bookmarker: &str, hash: &String) -> Result<()> {
+pub fn run_option_r(repository: &NssRepository, bookmarker: &str, hash: &String) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .open(repository.bookmarks_path(bookmarker))
         .with_context(|| format!("No such bookmarker: {}", bookmarker))?;
 
-    let raw_content = file_system::read_object(repository.path(), hash)?;
-    if String::from_utf8(raw_content[0..1].to_vec()).unwrap() == *"c" {
+    let object = repository.read_object(hash)?;
+    if object.as_str() == "commit" {
         file.write_all(hash.as_bytes())?;
     } else {
         bail!("Not commit hash ({})", hash)

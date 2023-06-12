@@ -6,10 +6,11 @@
 use std::path::Path;
 
 // External
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 // Internal
-use crate::util::file_system::*;
+use nss_core::nss_io::file_system::*;
+use nss_core::config::{Config, User};
 
 /// Build the necessary repository directories.
 ///
@@ -25,15 +26,24 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
     create_dir(repo_path.join(".nss").join("memo"))?;
 
     // Initial File
-    create_file_with_buffer(
+    // TODO: Consider what to do when some of the folders in the repository are missing.
+    match create_file_with_buffer(
         repo_path.join(".nss").join("repo"),
         repo_path.to_str().unwrap().as_bytes(),
-    )?;
+    ) {
+        Ok(..) => (),
+        Err(..) => bail!("Repository already existed!"),
+    };
     create_file_with_buffer(
         repo_path.join(".nss").join("HEAD"),
         b"bookmarker: bookmarks/local/voyage",
     )?;
-    create_file_with_buffer(repo_path.join(".nss").join("config"), b"remotes: []")?;
+
+    let config = Config::new(User::new(whoami::username(), None));
+    create_file_with_buffer(
+        repo_path.join(".nss").join("config"),
+        toml::to_string(&config)?.as_bytes(),
+    )?;
     create_file_with_buffer(repo_path.join(".nss").join("INDEX"), b"")?;
     create_file_with_buffer(
         repo_path
@@ -45,7 +55,10 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
     )?;
 
     let repo_name = repo_path.file_name().unwrap();
-    println!("Created repository! Repository name: {:?}", repo_name);
+    println!(
+        "Created repository! Repository name: {}",
+        repo_name.to_str().unwrap()
+    );
 
     Ok(())
 }
@@ -60,7 +73,7 @@ mod tests {
     fn test_run() {
         // Create a temporary directory for testing
         let temp_dir = testdir! {};
-        println!("Test Directory: {:?}", temp_dir);
+        println!("Test Directory: {}", temp_dir.display());
 
         // Run the function test
         assert!(run(&temp_dir).is_ok());

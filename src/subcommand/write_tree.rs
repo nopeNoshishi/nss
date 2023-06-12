@@ -1,8 +1,4 @@
 //! **Write-tree command** Base command: `git write-tree`
-//!
-//! /// TODO: Documentation
-//!
-//!
 
 // Std
 use std::collections::HashMap;
@@ -12,12 +8,11 @@ use std::path::PathBuf;
 use anyhow::Result;
 
 // Internal
-use crate::struct_set::{Entry, Hashable, Index, Tree};
-use crate::util::file_system;
-use crate::util::gadget::NssRepository;
+use nss_core::repository::NssRepository;
+use nss_core::struct_set::{Entry, Hashable, Index, Object, Tree};
 
-pub fn run(repository: NssRepository) -> Result<()> {
-    let index = Index::from_rawindex()?;
+pub fn run(repository: &NssRepository) -> Result<()> {
+    let index = repository.read_index()?;
     let tree_dir = tree_map(repository.path(), index)?;
 
     let mut repo_tree_hash = String::new();
@@ -27,7 +22,8 @@ pub fn run(repository: NssRepository) -> Result<()> {
 
         for path in m.1 {
             if path.is_file() {
-                let entry = Entry::new(path)?;
+                let object = Object::new(&path)?;
+                let entry = Entry::new(path, object)?;
                 entries.push(entry)
             } else {
                 let entry = dir_entry_map.get(&path).unwrap().to_owned();
@@ -40,7 +36,7 @@ pub fn run(repository: NssRepository) -> Result<()> {
 
         let tree = Tree::from_entries(entries);
         let hash = hex::encode(tree.to_hash());
-        file_system::write_object(repository.objects_path(&hash), tree)?;
+        repository.write_object(tree)?;
 
         if m.0 == repository.path() {
             repo_tree_hash = hash
