@@ -28,7 +28,7 @@ jobs:
 
     - name: Build
       working-directory: main
-      run: cd nss && cargo build --release
+      run: cargo build --release
     
     - uses: dtolnay/rust-toolchain@stable
       with:
