@@ -9,8 +9,8 @@ use std::path::Path;
 use anyhow::{bail, Result};
 
 // Internal
-use nss_core::nss_io::file_system::*;
 use nss_core::config::{Config, User};
+use nss_core::nss_io::file_system::*;
 
 /// Build the necessary repository directories.
 ///

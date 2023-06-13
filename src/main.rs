@@ -10,10 +10,9 @@ mod cli;
 mod subcommand;
 
 use cli::*;
-use subcommand::*;
 use nss_core::nss_io::file_system;
 use nss_core::repo::repository::NssRepository;
-
+use subcommand::*;
 
 /// Parse argument and run commnad  
 fn main() -> Result<()> {
