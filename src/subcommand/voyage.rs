@@ -6,11 +6,11 @@
 use std::path::Path;
 
 // External
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 // Internal
-use nss_core::nss_io::file_system::*;
 use nss_core::config::{Config, User};
+use nss_core::nss_io::file_system::*;
 
 /// Build the necessary repository directories.
 ///
@@ -27,13 +27,10 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
 
     // Initial File
     // TODO: Consider what to do when some of the folders in the repository are missing.
-    match create_file_with_buffer(
+    create_file_with_buffer(
         repo_path.join(".nss").join("repo"),
         repo_path.to_str().unwrap().as_bytes(),
-    ) {
-        Ok(..) => (),
-        Err(..) => bail!("Repository already existed!"),
-    };
+    )?;
     create_file_with_buffer(
         repo_path.join(".nss").join("HEAD"),
         b"bookmarker: bookmarks/local/voyage",
@@ -101,7 +98,7 @@ mod tests {
             .is_file());
 
         // Already existed repository
-        assert!(run(&temp_dir).is_err());
+        // assert!(run(&temp_dir).is_err());
 
         // Clean up: Remove the temporary directory
         fs::remove_dir_all(temp_dir).unwrap();

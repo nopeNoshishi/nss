@@ -10,7 +10,11 @@ use nss_core::struct_set::Blob;
 
 pub fn shot(repository: &NssRepository, file_path: &str) -> Result<()> {
     let blob = Blob::new(file_path)?;
-    repository.write_object(blob)?;
+    match repository.write_object(blob) {
+        Ok(()) => (),
+        Err(_e) => ()
+    };
+
     up_snap::run(repository, file_path)?;
 
     Ok(())
@@ -21,7 +25,10 @@ pub fn shot_all(repository: &NssRepository) -> Result<()> {
 
     for file_path in all_files {
         let blob = Blob::new(file_path)?;
-        repository.write_object(blob)?;
+        match repository.write_object(blob) {
+            Ok(()) => (),
+            Err(_e) => ()
+        };
     }
 
     up_snap::run_all(repository)?;

@@ -2,8 +2,6 @@
 
 // Std
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::prelude::*;
 use std::path::PathBuf;
 
 // External
@@ -12,7 +10,7 @@ use colored::*;
 
 // Internal
 use nss_core::repository::NssRepository;
-use nss_core::struct_set::{Index, IndexVesion1};
+use nss_core::struct_set::Index;
 
 pub fn run(repository: &NssRepository, file_path: &str) -> Result<()> {
     let mut index = match repository.read_index() {
@@ -23,12 +21,9 @@ pub fn run(repository: &NssRepository, file_path: &str) -> Result<()> {
         }
     };
 
-    let file_path = PathBuf::from(file_path);
-    index.add(&repository.path(), &file_path)?;
+    index.add(repository, &repository.path().join(file_path), None)?;
 
-    let mut file = File::create(repository.index_path())?;
-    file.write_all(&index.as_bytes())?;
-    file.flush()?;
+    repository.write_index(index)?;
 
     Ok(())
 }
@@ -36,9 +31,7 @@ pub fn run(repository: &NssRepository, file_path: &str) -> Result<()> {
 pub fn run_all(repository: &NssRepository) -> Result<()> {
     let index = Index::new_all(repository)?;
 
-    let mut file = File::create(repository.index_path())?;
-    file.write_all(&index.as_bytes())?;
-    file.flush()?;
+    repository.write_index(index)?;
 
     Ok(())
 }

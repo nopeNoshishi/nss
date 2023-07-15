@@ -10,10 +10,9 @@ mod cli;
 mod subcommand;
 
 use cli::*;
-use subcommand::*;
 use nss_core::nss_io::file_system;
 use nss_core::repo::repository::NssRepository;
-
+use subcommand::*;
 
 /// Parse argument and run commnad  
 fn main() -> Result<()> {
@@ -134,6 +133,16 @@ fn main() -> Result<()> {
                 Some(("go-to", sub_m)) => {
                     let target: Option<&String> = sub_m.get_one("hash");
                     go_to::run(&NssRepository::new(repo_path), target.unwrap())?
+                }
+
+                Some(("diff", sub_m)) => {
+                    let target: Option<&String> = sub_m.get_one("target-hash");
+                    let another: Option<&String> = sub_m.get_one("another-hash");
+                    diff::run(
+                        &NssRepository::new(repo_path),
+                        target.unwrap(),
+                        another.unwrap(),
+                    )?
                 }
 
                 Some(("debug", _sub_m)) => {

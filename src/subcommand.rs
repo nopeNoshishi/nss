@@ -1,4 +1,5 @@
 pub mod bookmark;
+pub mod diff;
 pub mod go_to;
 pub mod hasher;
 pub mod history;
