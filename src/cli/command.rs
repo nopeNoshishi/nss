@@ -239,21 +239,21 @@ fn goto_command() -> clap::Command {
 
 fn diff_command() -> clap::Command {
     Command::new("diff")
-        .about("Display difference between target commit and anothr commit.")
-        .override_usage("\n\tnss diff <target tree hash> <anothr tree hash>")
+        .about("Display difference between target commit and another commit.")
+        .override_usage("\n\tnss diff <target commit> <another commit>")
         .arg(
             Arg::new("target-hash")
                 .value_parser(clap::builder::NonEmptyStringValueParser::new())
                 .help("... This object must be stored in the repository")
                 .required(true)
-                .value_name("hash value"),
+                .value_name("target hash"),
         )
         .arg(
-            Arg::new("anothr-hash")
+            Arg::new("another-hash")
                 .value_parser(clap::builder::NonEmptyStringValueParser::new())
                 .help("... This object must be stored in the repository")
                 .required(true)
-                .value_name("hash value"),
+                .value_name("another hash"),
         )
 }
 
