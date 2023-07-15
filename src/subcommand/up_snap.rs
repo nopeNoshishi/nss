@@ -21,7 +21,7 @@ pub fn run(repository: &NssRepository, file_path: &str) -> Result<()> {
         }
     };
 
-    index.add(&repository.path().join(file_path), None)?;
+    index.add(repository, &repository.path().join(file_path), None)?;
 
     repository.write_index(index)?;
 

@@ -50,6 +50,7 @@ Options:
             bookemark_command(),
             history_command(),
             goto_command(),
+            diff_command(),
         ])
         .subcommands(vec![
             // deep command
@@ -231,6 +232,26 @@ fn goto_command() -> clap::Command {
             Arg::new("hash")
                 .value_parser(clap::builder::NonEmptyStringValueParser::new())
                 .help("...This object must be stored in the repository as commit object")
+                .required(true)
+                .value_name("hash value"),
+        )
+}
+
+fn diff_command() -> clap::Command {
+    Command::new("diff")
+        .about("Display difference between target commit and anothr commit.")
+        .override_usage("\n\tnss diff <target tree hash> <anothr tree hash>")
+        .arg(
+            Arg::new("target-hash")
+                .value_parser(clap::builder::NonEmptyStringValueParser::new())
+                .help("... This object must be stored in the repository")
+                .required(true)
+                .value_name("hash value"),
+        )
+        .arg(
+            Arg::new("anothr-hash")
+                .value_parser(clap::builder::NonEmptyStringValueParser::new())
+                .help("... This object must be stored in the repository")
                 .required(true)
                 .value_name("hash value"),
         )

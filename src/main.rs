@@ -135,6 +135,16 @@ fn main() -> Result<()> {
                     go_to::run(&NssRepository::new(repo_path), target.unwrap())?
                 }
 
+                Some(("diff", sub_m)) => {
+                    let target: Option<&String> = sub_m.get_one("target-hash");
+                    let another: Option<&String> = sub_m.get_one("another-hash");
+                    diff::run(
+                        &NssRepository::new(repo_path),
+                        target.unwrap(),
+                        another.unwrap(),
+                    )?
+                }
+
                 Some(("debug", _sub_m)) => {
                     use std::os::unix::fs::MetadataExt;
 
