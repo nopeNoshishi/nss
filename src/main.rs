@@ -146,11 +146,24 @@ fn main() -> Result<()> {
                 }
 
                 Some(("debug", _sub_m)) => {
-                    use std::os::unix::fs::MetadataExt;
+                    use nss_core::struct_set::commit_graph::CommitGraph;
 
-                    let path = repo_path.join("test");
-                    let meta = path.metadata()?;
-                    println!("{:b}", meta.mode());
+                    let repo = &NssRepository::new(repo_path);
+
+                    let graph1 = CommitGraph::build(
+                        "cd1cd2c123b1e725cc6524d1e9bf23347ea118fa".to_string(),
+                        repo,
+                        10,
+                    )?;
+
+                    let graph2 = CommitGraph::build(
+                        "425d32e7b619e1e89f757255e050f17efdbcb940".to_string(),
+                        repo,
+                        10,
+                    )?;
+
+                    println!("First: \n{:?}", graph1);
+                    println!("Second: \n{:?}", graph2);
                 }
 
                 _ => bail!("No such a commnad. Please `nss -h` to watch help."),

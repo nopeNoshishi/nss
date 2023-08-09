@@ -26,6 +26,7 @@ sha-1 = "0.9.1"
 hex = "0.4.2"
 whoami = "1.4.0"
 toml = "0.7.4"
+petgraph = "0.6.3"
 nss_core = { version = "0.1.0", path = "../nss_core" }
 
 [dev-dependencies]

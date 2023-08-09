@@ -2,8 +2,6 @@
 
 // Std
 use std::collections::HashMap;
-use std::fs::{File, OpenOptions};
-use std::io::prelude::*;
 use std::path::PathBuf;
 
 // External
@@ -11,6 +9,7 @@ use anyhow::{bail, Result};
 use colored::*;
 
 // Internal
+use nss_core::error::*;
 use nss_core::nss_io::file_system;
 use nss_core::repository::NssRepository;
 use nss_core::struct_set::{Commit, Entry, Hashable, Index, Object, Tree};
@@ -20,9 +19,11 @@ pub fn run(repository: &NssRepository, massage: &str) -> Result<()> {
     let hash = write_tree(repository)?;
 
     // Read head hash
-    let head_hash = match head_hash(repository)? {
-        Some(h) => h,
-        _ => "None".to_owned(),
+    let head_hash = repository.read_head()?;
+
+    let parents = match head_hash.len() {
+        0 => vec![],
+        _ => vec![head_hash.clone()],
     };
 
     let config = repository.read_config()?;
@@ -30,7 +31,7 @@ pub fn run(repository: &NssRepository, massage: &str) -> Result<()> {
     // Build commit object
     let commit = Commit::new(
         hash,
-        head_hash,
+        parents,
         format!(
             "{}\0 {}",
             config.username(),
@@ -46,73 +47,39 @@ pub fn run(repository: &NssRepository, massage: &str) -> Result<()> {
 
     // Write commit object
     let hash = hex::encode(commit.to_hash());
-    repository.write_object(commit.clone())?;
+    repository.write_object(commit)?;
 
-    display_result(repository, commit.parent.as_str(), hash.as_str())?;
+    display_result(repository, head_hash.as_str(), hash.as_str())?;
 
     Ok(())
 }
 
 fn display_result(repository: &NssRepository, old_hash: &str, new_hash: &str) -> Result<()> {
-    match old_hash {
-        "None" => {
-            println!(
-                "{}: {} --> {}: {}",
-                "OLD".bright_blue(),
-                &old_hash,
-                "NEW".bright_yellow(),
-                &new_hash[0..7]
-            );
+    let bookmarker = repository
+        .read_head_base()
+        .unwrap_or("DetachHead".to_string());
 
-            let book_path = read_head(repository)?;
-            let bookmarker = book_path.split('/').collect::<Vec<&str>>()[2];
-            update_bookmark(repository, bookmarker, new_hash, None)?;
-        }
-        _ => {
-            println!(
-                "{}: {} --> {}: {}",
-                "OLD".bright_blue(),
-                &old_hash[0..7],
-                "NEW".bright_yellow(),
-                &new_hash[0..7]
-            );
-
-            let book_path = read_head(repository)?;
-            let bookmarker = book_path.split('/').collect::<Vec<&str>>()[2];
-            update_bookmark(repository, bookmarker, new_hash, Some(old_hash))?;
-        }
+    if &bookmarker != "DetachHead" {
+        update_bookmark(repository, &bookmarker, new_hash, None)?;
+    } else {
+        println!("You are working at detached head!")
     }
+
+    let old_hash = if old_hash.len() >= 7 {
+        &old_hash[0..7]
+    } else {
+        "Detach Head"
+    };
+
+    println!(
+        "{}: {} --> {}: {}",
+        "OLD".bright_blue(),
+        &old_hash[0..7],
+        "NEW".bright_yellow(),
+        &new_hash[0..7]
+    );
 
     Ok(())
-}
-
-fn read_head(repository: &NssRepository) -> Result<String> {
-    let mut file = File::open(repository.head_path())?;
-    let mut referece = String::new();
-    file.read_to_string(&mut referece).unwrap();
-
-    let prefix_path = referece.split(' ').collect::<Vec<&str>>();
-
-    Ok(prefix_path[1].to_string())
-}
-
-fn head_hash(repository: &NssRepository) -> Result<Option<String>> {
-    let head_item = read_head(repository)?;
-    if head_item.contains('/') {
-        let bookmarker = head_item.split('/').collect::<Vec<&str>>()[2];
-
-        let mut file = File::open(repository.bookmarks_path(bookmarker)).unwrap();
-        let mut hash = String::new();
-        file.read_to_string(&mut hash).unwrap();
-
-        if hash == *"" {
-            return Ok(None);
-        }
-
-        return Ok(Some(hash));
-    }
-
-    Ok(Some(head_item))
 }
 
 fn update_bookmark(
@@ -121,38 +88,15 @@ fn update_bookmark(
     new_commit: &str,
     old_commit: Option<&str>,
 ) -> Result<()> {
-    let object = repository.read_object(new_commit)?;
-    if object.as_str() == "commit" {
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .truncate(true)
-            .open(repository.bookmarks_path(bookmarker))?;
-        let mut bookmark_hash = String::new();
-        file.read_to_string(&mut bookmark_hash)?;
+    let bookmark_hash = repository.read_bookmark(bookmarker)?;
 
-        if bookmark_hash.is_empty() {
-            file.write_all(new_commit.as_bytes())?;
-        } else if let Some(commit) = old_commit {
-            if bookmark_hash == commit {
-                file.write_all(new_commit.as_bytes())?;
-            } else {
-                bail!(
-                    "This bookmarker has the difference old hash ({})",
-                    bookmark_hash
-                );
-            }
-        } else {
-            bail!(
-                "This bookmarker has the difference old hash ({})",
-                bookmark_hash
-            );
+    if let Some(commit) = old_commit {
+        if bookmark_hash != commit {
+            bail!(RepositoryError::DontMatchHashAtBookmarker(bookmark_hash));
         }
-    } else {
-        bail!("Not commit hash <new commit> ({})", new_commit)
     }
 
-    Ok(())
+    repository.write_bookmark(bookmarker, new_commit.to_string())
 }
 
 fn write_tree(repository: &NssRepository) -> Result<String> {
@@ -180,7 +124,21 @@ fn write_tree(repository: &NssRepository) -> Result<String> {
 
         let tree = Tree::from_entries(entries);
         let hash = hex::encode(tree.to_hash());
-        repository.write_object(tree)?;
+
+        if let Err(err) = repository.write_object(tree) {
+            if let Some(obt_err) = err.downcast_ref::<ObjectError>() {
+                if obt_err != &ObjectError::AlreadyExistsObject {
+                    bail!(err)
+                } else {
+                    // Already existed tree
+                    // if m.0 == repository.path() {
+                    //     bail!(err)
+                    // }
+                }
+            } else {
+                bail!(err)
+            }
+        }
 
         if m.0 == repository.path() {
             repo_tree_hash = hash

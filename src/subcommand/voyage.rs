@@ -26,23 +26,22 @@ pub fn run<P: AsRef<Path>>(repo_path: P) -> Result<()> {
     create_dir(repo_path.join(".nss").join("memo"))?;
 
     // Initial File
-    // TODO: Consider what to do when some of the folders in the repository are missing.
-    create_file_with_buffer(
+    create_new_with_buffer(
         repo_path.join(".nss").join("repo"),
         repo_path.to_str().unwrap().as_bytes(),
     )?;
-    create_file_with_buffer(
+    create_new_with_buffer(
         repo_path.join(".nss").join("HEAD"),
         b"bookmarker: bookmarks/local/voyage",
     )?;
 
     let config = Config::new(User::new(whoami::username(), None));
-    create_file_with_buffer(
+    create_new_with_buffer(
         repo_path.join(".nss").join("config"),
         toml::to_string(&config)?.as_bytes(),
     )?;
-    create_file_with_buffer(repo_path.join(".nss").join("INDEX"), b"")?;
-    create_file_with_buffer(
+    create_new_with_buffer(repo_path.join(".nss").join("INDEX"), b"")?;
+    create_new_with_buffer(
         repo_path
             .join(".nss")
             .join("bookmarks")

@@ -12,7 +12,7 @@ pub fn shot(repository: &NssRepository, file_path: &str) -> Result<()> {
     let blob = Blob::new(file_path)?;
     match repository.write_object(blob) {
         Ok(()) => (),
-        Err(_e) => ()
+        Err(_e) => (),
     };
 
     up_snap::run(repository, file_path)?;
@@ -27,7 +27,7 @@ pub fn shot_all(repository: &NssRepository) -> Result<()> {
         let blob = Blob::new(file_path)?;
         match repository.write_object(blob) {
             Ok(()) => (),
-            Err(_e) => ()
+            Err(_e) => (),
         };
     }
 

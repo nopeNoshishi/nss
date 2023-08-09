@@ -40,9 +40,14 @@ pub fn run(repository: &NssRepository, target: &str) -> Result<()> {
 }
 
 fn to_base_tree(repository: &NssRepository, target: &str) -> Result<Tree> {
-    let commit = match repository.read_object(target)? {
+    let commit_hash = match repository.read_bookmark(target) {
+        Ok(c) => c,
+        Err(_) => target.to_string(),
+    };
+
+    let commit = match repository.read_object(&commit_hash)? {
         Object::Commit(c) => c,
-        _ => bail!("{} is not commit hash", target),
+        _ => bail!("{} is not commit hash", commit_hash),
     };
 
     // target commit hash needs to have tree hash
@@ -76,7 +81,7 @@ fn create_file(repository: &NssRepository, index: &Index) -> Result<()> {
             Object::Blob(blob) => {
                 let path = prefix.join(filemeta.filename);
                 file_system::create_dir(path.parent().unwrap())?;
-                file_system::create_file_with_buffer(path, &blob.content)?;
+                file_system::create_with_buffer(path, &blob.content)?;
             }
             _ => bail!("Index has tree object, so your commit is broken! (in go-to branch)"),
         };
